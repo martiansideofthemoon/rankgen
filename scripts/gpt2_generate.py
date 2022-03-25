@@ -17,6 +17,7 @@ parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jso
 parser.add_argument('--output_file', default="data/wiki_gpt2_medium_p90.tsv")
 parser.add_argument('--model_size', default="medium")
 parser.add_argument('--num_instances', default=10000, type=int)
+parser.add_argument('--truncate_fraction', default=0.5, type=float)
 args = parser.parse_args()
 
 with open(args.dataset, "r") as f:
@@ -53,7 +54,7 @@ def truncate(text):
     return text
 
 
-for idx, dd in tqdm.tqdm(enumerate(data), total=len(data)):
+for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instances)):
     if idx > args.num_instances:
         break
     prefix = dd['prefix']
@@ -65,7 +66,7 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=len(data)):
         gen_text = " ".join(gen_text.split())
         gen_text = truncate(gen_text)
 
-    if random.random() < 0.5:
+    if random.random() < args.truncate_fraction:
         gen_text = truncate(gen_text[:-1])
 
     suffix_lens.append(len(dd['suffix'].split()))
