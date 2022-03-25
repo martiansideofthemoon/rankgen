@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jsonl")
 parser.add_argument('--output_file', default="data/wiki_gpt2_medium_p90.tsv")
 parser.add_argument('--model_size', default="medium")
+parser.add_argument('--num_instances', default=10000, type=int)
 args = parser.parse_args()
 
 with open(args.dataset, "r") as f:
@@ -53,6 +54,8 @@ def truncate(text):
 
 
 for idx, dd in tqdm.tqdm(enumerate(data), total=len(data)):
+    if idx > args.num_instances:
+        break
     prefix = dd['prefix']
     batch = tokenizer(prefix, truncation=True, padding="longest", return_tensors="pt").to(device)
     num_tokens = len(batch['input_ids'][0])

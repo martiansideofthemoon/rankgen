@@ -13,10 +13,8 @@ from utils import execute_gpt2, cudafy_tokens
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/t5_xl_all_domains_pg19_random.jsonl")
 parser.add_argument('--model_size', default="medium")
+parser.add_argument('--num_negatives', default=10, type=int)
 args = parser.parse_args()
-
-with open(args.dataset, "r") as f:
-    data = [json.loads(x) for x in f.read().strip().split("\n")]
 
 tokenizer = GPT2Tokenizer.from_pretrained(f"gpt2-{args.model_size}")
 tokenizer.pad_token = tokenizer.eos_token
@@ -27,11 +25,7 @@ model.eval()
 avg_score = []
 all_score = []
 
-for idx, dd in tqdm.tqdm(enumerate(data), total=len(data)):
-    prefix = dd['prefix']
-    candidates = [dd['suffix']] + dd['negatives']
-    assert len(candidates) == 11
-    sequences = [prefix.strip() + " " + x.strip() for x in candidates]
+def compute_gpt2(sequences):
     with torch.no_grad():
         inputs = cudafy_tokens(tokenizer(sequences, return_tensors="pt", padding=True, truncation=True))
         outputs = model(**inputs)
@@ -41,10 +35,42 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=len(data)):
         gold_log_probs = gold_log_probs * token_mask
         perplexities = torch.exp(-1 * gold_log_probs.sum(dim=1) / token_mask.sum(dim=1))
         perplexities = perplexities.cpu().tolist()
+    return perplexities
+
+
+if args.dataset.endswith(".jsonl"):
+    with open(args.dataset, "r") as f:
+        data = [json.loads(x) for x in f.read().strip().split("\n")]
+
+    for idx, dd in tqdm.tqdm(enumerate(data), total=len(data)):
+        prefix = dd['prefix']
+        candidates = [dd['suffix']] + dd['negatives']
+        assert len(candidates) == 11
+        sequences = [prefix.strip() + " " + x.strip() for x in candidates]
+        perplexities = compute_gpt2(sequences)
         avg_score.append(np.mean([perplexities[0] < y for y in perplexities[1:]]))
         all_score.append(all([perplexities[0] < y for y in perplexities[1:]]))
 
-    if (idx + 1) % 100 == 0:
-        print(f"{np.mean(avg_score):.4f} average ({len(avg_score)} instances), {np.mean(all_score):.4f} all ({len(all_score)} instances)")
+        if (idx + 1) % 100 == 0:
+            print(f"{np.mean(avg_score):.4f} average ({len(avg_score)} instances), {np.mean(all_score):.4f} all ({len(all_score)} instances)")
+
+elif args.dataset.endswith(".tsv"):
+    with open(args.dataset, "r") as f:
+        data = [x.split("\t") for x in f.read().strip().split("\n")]
+
+    for idx in tqdm.tqdm(range(0, len(data), args.num_negatives + 1)):
+        prefix = data[idx][0]
+        candidates = []
+        for jdx in range(args.num_negatives + 1):
+            assert data[idx + jdx][0] == prefix
+            candidates.append(data[idx + jdx][1])
+        assert len(candidates) == args.num_negatives + 1
+        sequences = [prefix.strip() + " " + x.strip() for x in candidates]
+        perplexities = compute_gpt2(sequences)
+        avg_score.append(np.mean([perplexities[0] < y for y in perplexities[1:]]))
+        all_score.append(all([perplexities[0] < y for y in perplexities[1:]]))
+
+        if len(avg_score) % 100 == 0:
+            print(f"{np.mean(avg_score):.4f} average ({len(avg_score)} instances), {np.mean(all_score):.4f} all ({len(all_score)} instances)")
 
 print(f"{np.mean(avg_score):.4f} average ({len(avg_score)} instances), {np.mean(all_score):.4f} all ({len(all_score)} instances)")
