@@ -9,8 +9,8 @@ from scipy.stats import kendalltau
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input', default="ab_tests/gold_neg_wiki_random/input.csv")
-parser.add_argument('--dataset', default="ab_tests/gold_neg_wiki_random/Batch_351346_batch_results.csv")
+parser.add_argument('--input', default="ab_tests/gold_neg_wiki_hard/input.csv")
+parser.add_argument('--dataset', default="ab_tests/gold_neg_wiki_hard/Batch_351796_batch_results.csv")
 parser.add_argument('--num_instances', default=200)
 args = parser.parse_args()
 
@@ -27,7 +27,7 @@ with open(args.input, "r") as f:
         data_input.append(row)
 
 header = data[0]
-data = [x for x in data[1:] if x[15] != 'A3PDXN2ET2Q9CO']
+data = [x for x in data[1:] if x[15] == 'A61R5PVQJ3QL5']
 
 correct = 0
 wrong = 0

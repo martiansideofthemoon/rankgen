@@ -7,8 +7,8 @@ import random
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jsonl")
-parser.add_argument('--folder', default="ab_tests/gold_neg_wiki_random")
+parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_hard.jsonl")
+parser.add_argument('--folder', default="ab_tests/gold_neg_wiki_hard")
 parser.add_argument('--num_instances', default=200)
 args = parser.parse_args()
 
