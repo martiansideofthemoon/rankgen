@@ -19,6 +19,9 @@ parser.add_argument('--model_size', default="medium")
 parser.add_argument('--num_instances', default=7713, type=int)
 parser.add_argument('--num_samples', default=1, type=int)
 parser.add_argument('--max_new_tokens', default=115, type=int)
+parser.add_argument('--top_k', default=None, type=int)
+parser.add_argument('--top_p', default=None, type=float)
+parser.add_argument('--typical_p', default=None, type=float)
 parser.add_argument('--truncate_fraction', default=0.0, type=float)
 args = parser.parse_args()
 
@@ -62,7 +65,15 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
     batch = tokenizer(prefix, truncation=True, padding="longest", return_tensors="pt").to(device)
     num_tokens = len(batch['input_ids'][0])
     with torch.no_grad():
-        generation = model.generate(**batch, do_sample=True, output_scores=True, return_dict_in_generate=True, max_new_tokens=args.max_new_tokens, top_p=0.9, num_return_sequences=args.num_samples)
+        generation = model.generate(**batch,
+            do_sample=True,
+            output_scores=True,
+            return_dict_in_generate=True,
+            max_new_tokens=args.max_new_tokens,
+            top_k=args.top_k,
+            typical_p=args.typical_p,
+            top_p=args.top_p,
+            num_return_sequences=args.num_samples)
         gen_text = postprocess(generation['sequences'][:, num_tokens:])
         gen_text = [" ".join(x.split()) for x in gen_text]
         gen_text = [truncate(x) for x in gen_text]
