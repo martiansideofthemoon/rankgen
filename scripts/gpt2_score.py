@@ -58,7 +58,12 @@ elif args.dataset.endswith(".tsv"):
     with open(args.dataset, "r") as f:
         data = [x.split("\t") for x in f.read().strip().split("\n")]
 
-    for idx in tqdm.tqdm(range(0, len(data), args.num_negatives + 1)):
+    outputs = []
+    output_path = args.dataset + ".ppl_scores"
+    if os.path.exists(output_path):
+        with open(output_path, 'r') as f:
+            outputs = [x for x in f.read().strip().split("\n")]
+    for idx in tqdm.tqdm(range(len(outputs) * (args.num_negatives + 1), len(data), args.num_negatives + 1)):
         prefix = data[idx][0]
         candidates = []
         for jdx in range(args.num_negatives + 1):
@@ -66,11 +71,23 @@ elif args.dataset.endswith(".tsv"):
             candidates.append(data[idx + jdx][1])
         assert len(candidates) == args.num_negatives + 1
         sequences = [prefix.strip() + " " + x.strip() for x in candidates]
-        perplexities = compute_gpt2(sequences)
+        perplexities = [compute_gpt2(x)[0] for x in sequences]
         avg_score.append(np.mean([perplexities[0] < y for y in perplexities[1:]]))
         all_score.append(all([perplexities[0] < y for y in perplexities[1:]]))
 
+        assert len(candidates) == len(perplexities)
+        outputs.append(json.dumps({
+            "prefix": prefix,
+            "targets": candidates,
+            "scores": [-1 * x for x in perplexities]
+        }))
+
         if len(avg_score) % 100 == 0:
             print(f"{np.mean(avg_score):.4f} average ({len(avg_score)} instances), {np.mean(all_score):.4f} all ({len(all_score)} instances)")
+            with open(output_path, "w") as f:
+                f.write("\n".join(outputs) + "\n")
+
+    with open(output_path, "w") as f:
+        f.write("\n".join(outputs) + "\n")
 
 print(f"{np.mean(avg_score):.4f} average ({len(avg_score)} instances), {np.mean(all_score):.4f} all ({len(all_score)} instances)")
