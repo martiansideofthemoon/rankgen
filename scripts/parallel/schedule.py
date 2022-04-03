@@ -36,7 +36,7 @@ start_to_schedule = args.start_shard or 0
 end_to_schedule = args.end_shard or args.num_shards
 
 print(exp_id)
-gpu_list = ["2080ti-short" for i in range(30)] + ["1080ti-short" for i in range(30)]
+gpu_list = ["2080ti-short" for i in range(20)] + ["1080ti-short" for i in range(20)]
 # gpu_list = ["rtx8000-short" for i in range(50)]
 
 template = "scripts/parallel/parallel_template_gpu.sh"

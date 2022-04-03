@@ -8,18 +8,18 @@ parser.add_argument('--output_file', default=None, type=str)
 args = parser.parse_args()
 
 files = glob.glob(args.input_pattern)
-file_with_ids = [(int(f.split(".")[-1]), f) for f in files]
+file_with_ids = [(int(f.split("_")[-1]), f) for f in files]
 file_with_ids.sort(key=lambda x: x[0])
 
-data = []
+data = ""
 for file in file_with_ids:
-    with open(file[1], "rb") as f:
-        data.extend(pickle.load(f))
+    with open(file[1], "r") as f:
+        data += f.read()
 
 if args.output_file is not None:
     output_file = args.output_file
 else:
     output_file = ".".join(args.input_pattern.split(".")[:-1])
 print(output_file)
-with open(output_file, "wb") as f:
-    pickle.dump(data, f)
+with open(output_file, "w") as f:
+    f.write(data)
