@@ -6,7 +6,7 @@ import socket
 
 
 def get_run_id():
-    filename = "scripts/parallel_logs/expts.txt"
+    filename = "scripts/parallel/parallel_logs/expts.txt"
     if os.path.isfile(filename) is False:
         with open(filename, 'w') as f:
             f.write("")
@@ -41,17 +41,17 @@ for i in range(start_to_schedule, end_to_schedule):
 
     curr_gpu = gpu_list[i % len(gpu_list)]
 
-    os.makedirs("scripts/parallel_schedulers/schedulers_exp_%d" % exp_id, exist_ok=True)
-    os.makedirs("scripts/parallel_logs/logs_exp_%d" % exp_id, exist_ok=True)
+    os.makedirs("scripts/parallel/parallel_schedulers/schedulers_exp_%d" % exp_id, exist_ok=True)
+    os.makedirs("scripts/parallel/parallel_logs/logs_exp_%d" % exp_id, exist_ok=True)
 
     curr_template = schedule_template.replace("<total>", str(TOTAL)).replace("<local_rank>", str(i))
     curr_template = curr_template.replace("<exp_id>", str(exp_id)).replace("<command>", script_command)
     curr_template = curr_template.replace("<gpu>", curr_gpu)
 
-    with open("scripts/parallel_schedulers/schedulers_exp_%d/schedule_%d.sh" % (exp_id, i), "w") as f:
+    with open("scripts/parallel/parallel_schedulers/schedulers_exp_%d/schedule_%d.sh" % (exp_id, i), "w") as f:
         f.write(curr_template + "\n")
 
-    command = "sbatch scripts/parallel_schedulers/schedulers_exp_%d/schedule_%d.sh" % (exp_id, i)
+    command = "sbatch scripts/parallel/parallel_schedulers/schedulers_exp_%d/schedule_%d.sh" % (exp_id, i)
     print(subprocess.check_output(command, shell=True))
     time.sleep(0.2)
 
