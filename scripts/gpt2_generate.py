@@ -67,7 +67,7 @@ if args.num_shards > 1:
     args.output_file = f'{args.output_file}.shard_{args.local_rank}'
 
 for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instances)):
-    if idx >= args.num_instances:
+    if len(suffix_lens) >= args.num_instances:
         break
     prefix = dd['prefix']
     batch = tokenizer(prefix, truncation=True, padding="longest", return_tensors="pt").to(device)
@@ -90,10 +90,15 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
         if random.random() < args.truncate_fraction:
             gen_text[i] = truncate(gen_text[i][:-1])
 
-    suffix_lens.append(len(dd['suffix'].split()))
+    if "suffix" in dd:
+        suffix_str = dd['suffix']
+    else:
+        suffix_str = dd['targets'][0]
+
+    suffix_lens.append(len(suffix_str.split()))
     for x in gen_text:
         gen_lens.append(len(x.split()))
-    output += f"{prefix}\t{dd['suffix']}\tplaceholder\tplaceholder\n"
+    output += f"{prefix}\t{suffix_str}\tplaceholder\tplaceholder\n"
     for x in gen_text:
         output += f"{prefix}\t{x}\tplaceholder\tplaceholder\n"
 

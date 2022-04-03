@@ -5,6 +5,9 @@ import time
 import subprocess
 import socket
 
+# example to cancel jobs
+# squeue -u $USER | grep "job_6" | awk '{print $1}' | tail -n +2 | xargs scancel
+
 
 def get_run_id():
     filename = "scripts/parallel/parallel_logs/expts.txt"
