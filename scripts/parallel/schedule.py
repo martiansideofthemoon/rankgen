@@ -1,3 +1,4 @@
+import argparse
 import os
 import datetime
 import time
@@ -19,12 +20,20 @@ def get_run_id():
     return run_id
 
 
-script_command = "python scripts/gpt2_generate.py --model_size medium --output_file outputs/wiki_gpt2_medium_typical_p90.tsv --num_samples 20 --typical_p 0.9"
+parser = argparse.ArgumentParser()
+parser.add_argument('--command', default="python scripts/gpt2_generate.py --model_size medium --output_file outputs/wiki_gpt2_medium_typical_p90.tsv --num_samples 20 --typical_p 0.9")
+parser.add_argument('--num_shards', default=20)
+parser.add_argument('--start_shard', default=None, type=int)
+parser.add_argument('--end_shard', default=None, type=int)
+args = parser.parse_args()
+
+script_command = args.command
 exp_id = int(get_run_id())
 print(script_command)
-TOTAL = 20
-start_to_schedule = 0
-end_to_schedule = 20
+
+TOTAL = args.num_shards
+start_to_schedule = args.start_shard or 0
+end_to_schedule = args.end_shard or args.num_shards
 
 print(exp_id)
 gpu_list = ["2080ti-short" for i in range(30)] + ["1080ti-short" for i in range(30)]
