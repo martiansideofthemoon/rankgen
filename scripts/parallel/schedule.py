@@ -22,7 +22,7 @@ def get_run_id():
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--command', default="python scripts/gpt2_generate.py --model_size medium --output_file outputs/wiki_gpt2_medium_typical_p90.tsv --num_samples 20 --typical_p 0.9")
-parser.add_argument('--num_shards', default=20)
+parser.add_argument('--num_shards', default=20, type=int)
 parser.add_argument('--start_shard', default=None, type=int)
 parser.add_argument('--end_shard', default=None, type=int)
 parser.add_argument('--partition_type', default="2080ti-short", type=str)
