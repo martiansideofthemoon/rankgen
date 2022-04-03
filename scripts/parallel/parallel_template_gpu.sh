@@ -1,6 +1,6 @@
 #!/bin/sh
 #SBATCH --job-name=job_<exp_id>_<local_rank>
-#SBATCH -o /mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval/scripts/parallel/logs_exp_<exp_id>/log_<local_rank>.txt
+#SBATCH -o /mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval/scripts/parallel/parallel_logs/logs_exp_<exp_id>/log_<local_rank>.txt
 #SBATCH --time=4:00:00
 #SBATCH --partition=<gpu>
 #SBATCH --gres=gpu:1
