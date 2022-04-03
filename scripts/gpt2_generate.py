@@ -72,6 +72,8 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
     prefix = dd['prefix']
     batch = tokenizer(prefix, truncation=True, padding="longest", return_tensors="pt", max_length=1024 - args.max_new_tokens).to(device)
     num_tokens = len(batch['input_ids'][0])
+    if num_tokens >= 1024 - args.max_new_tokens - 3:
+        print("long sequence detected")
     with torch.no_grad():
         generation = model.generate(**batch,
             do_sample=True,
