@@ -10,7 +10,7 @@ import random
 import nltk
 
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from utils import execute_gpt2, cudafy_tokens
+from utils import execute_gpt2, cudafy_tokens, form_partitions
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jsonl")
@@ -23,6 +23,8 @@ parser.add_argument('--top_k', default=None, type=int)
 parser.add_argument('--top_p', default=None, type=float)
 parser.add_argument('--typical_p', default=None, type=float)
 parser.add_argument('--truncate_fraction', default=0.0, type=float)
+parser.add_argument('--num_shards', default=1, type=int)
+parser.add_argument('--local_rank', default=0, type=int)
 args = parser.parse_args()
 
 with open(args.dataset, "r") as f:
@@ -39,12 +41,13 @@ all_score = []
 random.seed(43)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-def postprocess(outputs):
-    return tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
 output = ""
 suffix_lens = []
 gen_lens = []
+
+def postprocess(outputs):
+    return tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
 def truncate(text):
     last_punc = 0
@@ -57,6 +60,10 @@ def truncate(text):
     if last_punc != 0:
         text = text[:last_punc + 1]
     return text
+
+if args.num_shards > 1:
+    partitions = form_partitions(data, args.num_shards)
+    data = partitions[args.local_rank]
 
 for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instances)):
     if idx >= args.num_instances:
@@ -93,6 +100,9 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
         print(f"Avg suffix length = {np.mean(suffix_lens):.4f} ({len(suffix_lens)} samples), avg gen length = {np.mean(gen_lens):.4f} ({len(gen_lens)} samples)")
         with open(args.output_file, "w") as f:
             f.write(output)
+
+if args.num_shards > 1:
+    args.output_file = f'{args.output_file}.shard_{args.local_rank}'
 
 with open(args.output_file, "w") as f:
     f.write(output)

@@ -26,7 +26,7 @@ for i in range(5):
 
         num_tokens.append(len(best_gen.split()))
 
-    if i != 0:
+    if i == 0:
         mauve2 = mauve.compute_mauve(p_text=all_max_score, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
         print(f"Max score mauve = {mauve2.mauve}")
 

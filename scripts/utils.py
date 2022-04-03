@@ -4,6 +4,7 @@ import string
 import pickle
 import collections as cll
 import torch
+import numpy as np
 from scipy.stats import kendalltau
 
 
@@ -11,6 +12,14 @@ def cudafy_tokens(tokens):
     for x, y in tokens.items():
         tokens[x] = y.cuda()
     return tokens
+
+
+def form_partitions(dataset, num_shards):
+    p_indices = np.round(np.linspace(0, len(dataset), num_shards + 1))
+    p_indices = [int(x) for x in p_indices]
+    partitions = [dataset[p_indices[i]:p_indices[i + 1]] for i in range(len(p_indices) - 1)]
+    assert len(partitions) == num_shards
+    return partitions
 
 
 def execute_gpt2(relevant_window, text_token_ids, tokenizer, model, output_hidden_states=False):
