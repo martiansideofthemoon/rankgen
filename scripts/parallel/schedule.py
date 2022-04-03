@@ -22,15 +22,15 @@ def get_run_id():
 script_command = "python scripts/gpt2_generate.py --model_size medium --output_file outputs/wiki_gpt2_medium_typical_p90.tsv --num_samples 20 --typical_p 0.9"
 exp_id = int(get_run_id())
 print(script_command)
-TOTAL = 40
+TOTAL = 20
 start_to_schedule = 0
-end_to_schedule = 40
+end_to_schedule = 20
 
 print(exp_id)
 gpu_list = ["2080ti-short" for i in range(30)] + ["1080ti-short" for i in range(30)] + 
 # gpu_list = ["rtx8000-short" for i in range(50)]
 
-template = "scripts/parallel_template_gpu.sh"
+template = "scripts/parallel/parallel_template_gpu.sh"
 
 print(template)
 
