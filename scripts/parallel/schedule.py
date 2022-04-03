@@ -25,6 +25,7 @@ parser.add_argument('--command', default="python scripts/gpt2_generate.py --mode
 parser.add_argument('--num_shards', default=20)
 parser.add_argument('--start_shard', default=None, type=int)
 parser.add_argument('--end_shard', default=None, type=int)
+parser.add_argument('--partition_type', default="2080ti-short", type=int)
 args = parser.parse_args()
 
 script_command = args.command
@@ -36,7 +37,7 @@ start_to_schedule = args.start_shard or 0
 end_to_schedule = args.end_shard or args.num_shards
 
 print(exp_id)
-gpu_list = ["2080ti-short" for i in range(20)] + ["1080ti-short" for i in range(20)]
+gpu_list = [args.partition_type for i in range(40)]
 # gpu_list = ["rtx8000-short" for i in range(50)]
 
 template = "scripts/parallel/parallel_template_gpu.sh"

@@ -64,6 +64,7 @@ def truncate(text):
 if args.num_shards > 1:
     partitions = form_partitions(data, args.num_shards)
     data = partitions[args.local_rank]
+    args.output_file = f'{args.output_file}.shard_{args.local_rank}'
 
 for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instances)):
     if idx >= args.num_instances:
@@ -100,9 +101,6 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
         print(f"Avg suffix length = {np.mean(suffix_lens):.4f} ({len(suffix_lens)} samples), avg gen length = {np.mean(gen_lens):.4f} ({len(gen_lens)} samples)")
         with open(args.output_file, "w") as f:
             f.write(output)
-
-if args.num_shards > 1:
-    args.output_file = f'{args.output_file}.shard_{args.local_rank}'
 
 with open(args.output_file, "w") as f:
     f.write(output)

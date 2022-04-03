@@ -20,6 +20,7 @@ assert len(data) % (args.num_samples + 1) == 0
 for i in range(0, len(data), args.num_samples + 1):
     gen_suffices = []
     for j in range(1, args.num_samples + 1):
+        # the following condition is not necessarily true, but very very unlikely for long sequences in unconditional generation
         assert data[i][1] != data[i + j][1]
         assert data[i][0] == data[i + j][0]
         gen_suffices.append(data[i + j][1])
