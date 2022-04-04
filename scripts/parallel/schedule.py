@@ -67,7 +67,8 @@ for i in range(start_to_schedule, end_to_schedule):
     print(subprocess.check_output(command, shell=True))
     time.sleep(0.2)
 
-output = "Script Command = " + script_command + "\n" + \
+output = f"Experiment ID {exp_id}" + \
+    "Script Command = " + script_command + "\n" + \
     datetime.datetime.now().strftime("%Y-%m-%d %H:%M") + "\n" + \
     "{:d} shards, {:d} - {:d} scheduled".format(TOTAL, start_to_schedule, end_to_schedule) + "\n" + \
     "" + "\n\n"
