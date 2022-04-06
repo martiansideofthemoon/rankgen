@@ -16,8 +16,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 class T5XEmbeddingGenerator():
-    def __init__(self, batch_size=32):
-        self.batch_size = batch_size
+    def __init__(self, max_batch_size=32):
+        self.max_batch_size = max_batch_size
 
         with open('state_dict.pickle', 'rb') as handle:
             state_dict = pickle.load(handle)
@@ -44,21 +44,16 @@ class T5XEmbeddingGenerator():
         self.model.to(device)
 
     def create_mini_batches(self, all_encodings):
-        batch_size = self.batch_size
+        max_batch_size = self.max_batch_size
         all_batch_input_ids = []
         all_batch_attention_masks = []
         n_encodings = all_encodings.input_ids.size()[0]
-        n_minibatches = n_encodings // batch_size
+        n_minibatches = n_encodings // max_batch_size
         i = 0
-        for i in range(n_minibatches):
-            batch_input_ids = all_encodings.input_ids[i * batch_size:(i + 1) * batch_size]
+        for i in range(0, n_encodings, max_batch_size):
+            batch_input_ids = all_encodings.input_ids[i * max_batch_size:(i + 1) * max_batch_size]
             all_batch_input_ids.append(batch_input_ids)
-            batch_attention_masks = all_encodings.attention_mask[i * batch_size:(i + 1) * batch_size]
-            all_batch_attention_masks.append(batch_attention_masks)
-        if n_encodings % batch_size != 0:
-            batch_input_ids = all_encodings.input_ids[i * batch_size:n_encodings]
-            all_batch_input_ids.append(batch_input_ids)
-            batch_attention_masks = all_encodings.attention_mask[i * batch_size:n_encodings]
+            batch_attention_masks = all_encodings.attention_mask[i * max_batch_size:(i + 1) * max_batch_size]
             all_batch_attention_masks.append(batch_attention_masks)
         return all_batch_input_ids, all_batch_attention_masks
 
@@ -76,9 +71,11 @@ class T5XEmbeddingGenerator():
         for batch_input_ids, batch_attention_masks in zip(all_batch_input_ids, all_batch_attention_masks):
             hidden_states = self.model(input_ids=batch_input_ids,
                                        attention_mask=batch_attention_masks).last_hidden_state  # (batch_size, 512, 1024), tensor
-            proj = self.projection.repeat(hidden_states.size()[0], 1, 1)
-            projections = torch.matmul(hidden_states, proj) # (batch_size, 512, 1024) by (batch_size, 1024, 1024)
-            batch_embeddings = projections[:, 0, :]  # (batch_size, 1024), tensor
+            hidden_states = hidden_states[:, 0, :]
+            # proj = self.projection.repeat(hidden_states.size()[0], 1, 1)
+            batch_embeddings = torch.matmul(hidden_states,
+                                            self.projection)  # (batch_size, 512, 1024) by (batch_size, 1024, 1024)
+            # batch_embeddings = projections[:, 0, :]  # (batch_size, 1024), tensor
             if embeddings.size() == (1, 1):
                 embeddings = batch_embeddings
             else:
@@ -91,9 +88,11 @@ nltk.download('punkt')
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', default="/mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval/data/t5_xl_all_domains_pg19_random.jsonl", type=str)
+parser.add_argument('--dataset',
+                    default="/mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval/data/t5_xl_all_domains_pg19_random.jsonl",
+                    type=str)
 parser.add_argument('--compare_between', default="GLD,PPL,RET", type=str)
-parser.add_argument('--num_samples', default=40, type=int)
+parser.add_argument('--num_samples', default=10, type=int)
 parser.add_argument('--beam_size', default=1, type=int)
 parser.add_argument('--generation_length', default=None, type=int)
 parser.add_argument('--num_tokens', default=5, type=int)
@@ -104,7 +103,7 @@ args = parser.parse_args()
 
 with open(args.dataset, "r") as f:
     data = [json.loads(x) for x in f.read().strip().split("\n")]
-t5x = T5XEmbeddingGenerator(batch_size=5)
+t5x_embedder = T5XEmbeddingGenerator(max_batch_size=5)
 
 random.seed(49)
 random.shuffle(data)
@@ -116,6 +115,7 @@ baseline_prec_scores = []
 baseline_f1_scores = []
 generated_prec_scores = []
 generated_f1_scores = []
+
 
 def scorer_t5x(t5x, prefix, suffixes, prefix_vector=None):
     #
@@ -142,8 +142,10 @@ model = GPT2LMHeadModel.from_pretrained(f"gpt2-{args.model_size}")
 model.cuda()
 model.eval()
 
+
 def postprocess(outputs):
     return "".join(tokenizer.batch_decode(outputs, skip_special_tokens=True))
+
 
 def truncate(text):
     last_punc = 0
@@ -157,7 +159,8 @@ def truncate(text):
         text = text[:last_punc + 1]
     return text
 
-def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9, num_tokens=5, num_samples=40):
+
+def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9, num_tokens=5, num_samples=10):
     final_outputs = []
     final_scores = []
     for ctx in contexts:
@@ -176,12 +179,14 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                     all_outs.append(beam)
                 # otherwise generate the next n tokens
                 else:
-                    inputs = tokenizer([beam['text'] for _ in range(num_samples)], truncation=True, padding="longest", return_tensors="pt").to(
+                    inputs = tokenizer([beam['text'] for _ in range(num_samples)], truncation=True, padding="longest",
+                                       return_tensors="pt").to(
                         device)
                     num_input_tokens = len(inputs['input_ids'][0])
-                    curr_outs = model.generate(**inputs, do_sample=False, output_scores=True,
-                                                       return_dict_in_generate=True,
-                                                       max_new_tokens=num_tokens, top_p=top_p, temperature=temperature)
+                    curr_outs = model.generate(**inputs, do_sample=True, output_scores=True,
+                                               return_dict_in_generate=True,
+                                               max_new_tokens=num_tokens, top_k=None, top_p=top_p,
+                                               num_return_sequences=num_samples, temperature=temperature)
                     is_eos = []
                     for curr_out in curr_outs['sequences']:
                         if tokenizer.eos_token_id in curr_out:
@@ -196,9 +201,10 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                             "text": beam["text"] + text,
                             "eos": eos
                         })
-            scores, _, _ = scorer(prefix=ctx, suffixes=[x["text"][num_prefix_chars:] for x in all_outs], prefix_vector=prefix_vector)
+            scores, _, _ = scorer(prefix=ctx, suffixes=[x["text"][num_prefix_chars:] for x in all_outs],
+                                  prefix_vector=prefix_vector)
             top_scores, top_indices = torch.topk(scores, k=beam_size)
-            beams = [all_outs[x] for x in top_indices] # only track the top k beams
+            beams = [all_outs[x] for x in top_indices]  # only track the top k beams
 
             for beam in beams:
                 if len(tokenizer.tokenize(beam["text"])) >= 128:
@@ -210,17 +216,18 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                 break
     return final_outputs, final_scores
 
+
 for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
     if kk < 50:
         continue
     html_output = f"<b>Prefix</> = {instance['prefix']}\n\n"
     token_bs_output = token_beam_search(
-        contexts=[instance["prefix"]], scorer=partial(scorer_t5x, t5x=t5x), beam_size=args.beam_size,
+        contexts=[instance["prefix"]], scorer=partial(scorer_t5x, t5x=t5x_embedder), beam_size=args.beam_size,
         temperature=1.0, top_p=args.top_p, num_tokens=args.num_tokens)[0][0]
     batch = tokenizer(instance['prefix'], truncation=True, padding="longest", return_tensors="pt").to(device)
     num_input_tokens = len(batch['input_ids'][0])
     generation_output = model.generate(**batch, do_sample=True, output_scores=True, return_dict_in_generate=True,
-                                max_new_tokens=args.generation_length, top_p=args.top_p, temperature=1.0)
+                                       max_new_tokens=args.generation_length, top_p=args.top_p, temperature=1.0)
     generation_output = postprocess(generation_output['sequences'][0, num_input_tokens:])
     generation_output = " ".join(generation_output.split())
     generation_output = truncate(generation_output)
