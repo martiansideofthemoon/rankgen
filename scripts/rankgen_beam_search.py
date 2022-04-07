@@ -15,7 +15,6 @@ from utils import truncate
 from transformers.utils import logging
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-logging.set_verbosity_error()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/multi_outs/t5_xxl_descartes_wiki_ppl.jsonl", type=str)
@@ -143,6 +142,8 @@ outputs = []
 
 target_seq_len = []
 gen_seq_len = []
+
+logging.set_verbosity_error()
 
 for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
     token_beam_text, token_beam_scores = token_beam_search(contexts=[instance["prefix"]], scorer=scorer_fn, beam_size=args.beam_size,
