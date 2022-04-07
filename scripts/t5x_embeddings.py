@@ -9,7 +9,7 @@ import random
 import json
 from functools import partial
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from utils import export_server, clean_token
+from utils import export_server, clean_token, form_partitions
 import nltk
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -51,9 +51,9 @@ class T5XEmbeddingGenerator():
         n_minibatches = n_encodings // max_batch_size
         i = 0
         for i in range(0, n_encodings, max_batch_size):
-            batch_input_ids = all_encodings.input_ids[i * max_batch_size:(i + 1) * max_batch_size]
+            batch_input_ids = all_encodings.input_ids[i:i + max_batch_size]
             all_batch_input_ids.append(batch_input_ids)
-            batch_attention_masks = all_encodings.attention_mask[i * max_batch_size:(i + 1) * max_batch_size]
+            batch_attention_masks = all_encodings.attention_mask[i:i + max_batch_size]
             all_batch_attention_masks.append(batch_attention_masks)
         return all_batch_input_ids, all_batch_attention_masks
 
@@ -72,10 +72,8 @@ class T5XEmbeddingGenerator():
             hidden_states = self.model(input_ids=batch_input_ids,
                                        attention_mask=batch_attention_masks).last_hidden_state  # (batch_size, 512, 1024), tensor
             hidden_states = hidden_states[:, 0, :]
-            # proj = self.projection.repeat(hidden_states.size()[0], 1, 1)
             batch_embeddings = torch.matmul(hidden_states,
                                             self.projection)  # (batch_size, 512, 1024) by (batch_size, 1024, 1024)
-            # batch_embeddings = projections[:, 0, :]  # (batch_size, 1024), tensor
             if embeddings.size() == (1, 1):
                 embeddings = batch_embeddings
             else:
@@ -99,7 +97,14 @@ parser.add_argument('--num_tokens', default=5, type=int)
 parser.add_argument('--top_p', default=0.9, type=float)
 parser.add_argument('--export', dest='export', action='store_true')
 parser.add_argument('--model_size', default='medium', type=str)
+parser.add_argument('--num_shards', default=1, type=int)
+parser.add_argument('--local_rank', default=0, type=int)
 args = parser.parse_args()
+
+if args.num_shards > 1:
+    partitions = form_partitions(data, args.num_shards)
+    data = partitions[args.local_rank]
+    args.output_file = f'{args.output_file}.shard_{args.local_rank}'
 
 with open(args.dataset, "r") as f:
     data = [json.loads(x) for x in f.read().strip().split("\n")]
@@ -139,12 +144,12 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 tokenizer = GPT2Tokenizer.from_pretrained(f"gpt2-{args.model_size}")
 tokenizer.pad_token = tokenizer.eos_token
 model = GPT2LMHeadModel.from_pretrained(f"gpt2-{args.model_size}")
-model.cuda()
+model.to(device)
 model.eval()
 
 
 def postprocess(outputs):
-    return "".join(tokenizer.batch_decode(outputs, skip_special_tokens=True))
+    return tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
 
 def truncate(text):
@@ -168,7 +173,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
         num_prefix_chars = len(ctx)
         num_prefix_tokens = len(tokenizer(ctx, truncation=True, padding="longest", return_tensors="pt")['input_ids'][0])
         beams = [{
-            "text": ctx,
+            "text": "",
             "eos": False
         } for _ in range(beam_size)]
         while True:
@@ -179,7 +184,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                     all_outs.append(beam)
                 # otherwise generate the next n tokens
                 else:
-                    inputs = tokenizer([beam['text'] for _ in range(num_samples)], truncation=True, padding="longest",
+                    inputs = tokenizer(ctx + beam['text'], truncation=True, padding="longest",
                                        return_tensors="pt").to(
                         device)
                     num_input_tokens = len(inputs['input_ids'][0])
@@ -193,15 +198,14 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                             is_eos.append(True)
                         else:
                             is_eos.append(False)
-                    curr_outs = postprocess(curr_outs['sequences'][0, num_input_tokens:])
-                    curr_outs = " ".join(curr_outs.split())
-                    for text, eos in zip(curr_outs, is_eos):
+                    curr_outs_text = postprocess(curr_outs['sequences'][:, num_input_tokens:])
+                    for text, eos in zip(curr_outs_text, is_eos):
                         # update all_outs
                         all_outs.append({
                             "text": beam["text"] + text,
                             "eos": eos
                         })
-            scores, _, _ = scorer(prefix=ctx, suffixes=[x["text"][num_prefix_chars:] for x in all_outs],
+            scores, _, _ = scorer(prefix=ctx, suffixes=[x["text"] for x in all_outs],
                                   prefix_vector=prefix_vector)
             top_scores, top_indices = torch.topk(scores, k=beam_size)
             beams = [all_outs[x] for x in top_indices]  # only track the top k beams
@@ -227,9 +231,9 @@ for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
     batch = tokenizer(instance['prefix'], truncation=True, padding="longest", return_tensors="pt").to(device)
     num_input_tokens = len(batch['input_ids'][0])
     generation_output = model.generate(**batch, do_sample=True, output_scores=True, return_dict_in_generate=True,
-                                       max_new_tokens=args.generation_length, top_p=args.top_p, temperature=1.0)
+                                       max_new_tokens=args.num_tokens, top_p=args.top_p, temperature=1.0)
     generation_output = postprocess(generation_output['sequences'][0, num_input_tokens:])
-    generation_output = " ".join(generation_output.split())
+    generation_output = "".join(generation_output)
     generation_output = truncate(generation_output)
     print(generation_output)
 
