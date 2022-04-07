@@ -6,6 +6,7 @@ import mauve
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/multi_outs/t5_xxl_wiki_t5_xl_gen_inbook_all.jsonl")
+parser.add_argument('--eval_type', default="both")
 args = parser.parse_args()
 
 with open(args.dataset, 'r') as f:
@@ -26,7 +27,7 @@ for i in range(5):
 
         num_tokens.append(len(best_gen.split()))
 
-    if i == 0:
+    if i == 0 and args.eval_type == "both":
         mauve2 = mauve.compute_mauve(p_text=all_max_score, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
         print(f"Max score mauve = {mauve2.mauve}")
 
