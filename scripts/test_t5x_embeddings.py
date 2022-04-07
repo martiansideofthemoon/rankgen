@@ -10,10 +10,11 @@ from t5x_embeddings import T5XEmbeddingGenerator
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', default="t5x_conversion", type=str)
+parser.add_argument('--cache_dir', default=None, type=str)
 args = parser.parse_args()
 
 
-t5x_embedder = T5XEmbeddingGenerator(model_path=args.model_path)
+t5x_embedder = T5XEmbeddingGenerator(model_path=args.model_path, cache_dir=None)
 
 f = open(os.path.join(args.model_path, "pg19_debug_inference-score.jsonl-00000-of-00001.processed"), "r")
 examples = [json.loads(x) for x in f.read().strip().split("\n")]
