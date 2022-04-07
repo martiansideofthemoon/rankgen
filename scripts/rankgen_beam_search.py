@@ -171,3 +171,5 @@ for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
     if (kk + 1) % 10 == 0:
         print(f"Avg lens ({kk + 1} instances) = {np.mean(gen_seq_len)} generation, {np.mean(target_seq_len)} target")
 
+with open(args.output_file, "w") as f:
+    f.write("\n".join(outputs) + "\n")
