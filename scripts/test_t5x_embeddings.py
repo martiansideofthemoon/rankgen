@@ -9,7 +9,7 @@ import time
 from t5x_embeddings import T5XEmbeddingGenerator
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_path', default="/data/kalpesh/t5x_conversion", type=str)
+parser.add_argument('--model_path', default="t5x_conversion", type=str)
 args = parser.parse_args()
 
 

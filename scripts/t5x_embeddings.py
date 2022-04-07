@@ -32,10 +32,7 @@ class T5XEmbeddingGenerator():
         self.projection = self.projection.to(self.device)
         self.tokenizer = T5Tokenizer.from_pretrained("google/t5-v1_1-large", cache_dir=cache_dir)
         model = T5EncoderModel.from_pretrained("google/t5-v1_1-large", cache_dir=cache_dir)
-        self.model, missing_keys, unexpected_keys, mismatched_keys, error_msg = T5EncoderModel._load_state_dict_into_model(
-            model,
-            state_dict_new,
-            "google/t5-v1_1-large")
+        self.model, _, _, _, _ = T5EncoderModel._load_pretrained_model(model, state_dict_new, None, "google/t5-v1_1-large")
         self.model.to(self.device)
         self.model.eval()
 
