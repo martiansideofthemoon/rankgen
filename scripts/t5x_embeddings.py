@@ -10,7 +10,7 @@ import json
 
 
 class T5XEmbeddingGenerator():
-    def __init__(self, max_batch_size=32, model_path='.'):
+    def __init__(self, max_batch_size=32, model_path='.', cache_dir=None):
         self.max_batch_size = max_batch_size
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -30,8 +30,8 @@ class T5XEmbeddingGenerator():
             self.projection = torch.Tensor(pickle.load(handle))  # (1024, 1024), numpy array
 
         self.projection = self.projection.to(self.device)
-        self.tokenizer = T5Tokenizer.from_pretrained("google/t5-v1_1-large")
-        model = T5EncoderModel.from_pretrained("google/t5-v1_1-large")
+        self.tokenizer = T5Tokenizer.from_pretrained("google/t5-v1_1-large", cache_dir=cache_dir)
+        model = T5EncoderModel.from_pretrained("google/t5-v1_1-large", cache_dir=cache_dir)
         self.model, missing_keys, unexpected_keys, mismatched_keys, error_msg = T5EncoderModel._load_state_dict_into_model(
             model,
             state_dict_new,

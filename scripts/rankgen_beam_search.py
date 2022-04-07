@@ -24,6 +24,7 @@ parser.add_argument('--beam_size', default=2, type=int)
 parser.add_argument('--num_tokens', default=20, type=int)
 parser.add_argument('--top_p', default=0.9, type=float)
 parser.add_argument('--model_size', default='medium', type=str)
+parser.add_argument('--cache_dir', default=None, type=str)
 parser.add_argument('--retriever_model_path', default='t5x_conversion', type=str)
 parser.add_argument('--num_shards', default=1, type=int)
 parser.add_argument('--local_rank', default=0, type=int)
@@ -38,7 +39,7 @@ if args.num_shards > 1:
     data = partitions[args.local_rank]
     args.output_file = f'{args.output_file}.shard_{args.local_rank}'
 
-t5x_embedder = T5XEmbeddingGenerator(model_path=args.retriever_model_path)
+t5x_embedder = T5XEmbeddingGenerator(model_path=args.retriever_model_path, cache_dir=args.cache_dir)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 random.seed(49)
@@ -53,14 +54,6 @@ generated_prec_scores = []
 generated_f1_scores = []
 
 
-def scorer_t5x(t5x_embedder, prefix, suffixes, prefix_vector=None):
-    if prefix_vector is None:
-        prefix_vector = t5x_embedder.encode(prefix, vectors_type="prefix")["embeddings"]
-    suffix_vectors = t5x_embedder.encode(suffixes, vectors_type="suffix")["embeddings"]
-    similarities = torch.matmul(prefix_vector, suffix_vectors.t()).squeeze(dim=0)
-    return similarities, prefix_vector, suffix_vectors
-
-
 exact_matches = 0
 random.seed(442)
 random.shuffle(data)
@@ -69,9 +62,9 @@ folder_name = f"token_bs_t5x"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-tokenizer = GPT2Tokenizer.from_pretrained(f"gpt2-{args.model_size}")
+tokenizer = GPT2Tokenizer.from_pretrained(f"gpt2-{args.model_size}", cache_dir=args.cache_dir)
 tokenizer.pad_token = tokenizer.eos_token
-model = GPT2LMHeadModel.from_pretrained(f"gpt2-{args.model_size}")
+model = GPT2LMHeadModel.from_pretrained(f"gpt2-{args.model_size}", cache_dir=args.cache_dir)
 model.to(device)
 model.eval()
 
@@ -80,17 +73,12 @@ def postprocess(outputs):
     return tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
 
-def truncate(text):
-    last_punc = 0
-    if "." in text:
-        last_punc = max(last_punc, text.rindex("."))
-    if "?" in text:
-        last_punc = max(last_punc, text.rindex("?"))
-    if "!" in text:
-        last_punc = max(last_punc, text.rindex("!"))
-    if last_punc != 0:
-        text = text[:last_punc + 1]
-    return text
+def scorer_t5x(t5x_embedder, prefix, suffixes, prefix_vector=None):
+    if prefix_vector is None:
+        prefix_vector = t5x_embedder.encode(prefix, vectors_type="prefix")["embeddings"]
+    suffix_vectors = t5x_embedder.encode(suffixes, vectors_type="suffix")["embeddings"]
+    similarities = torch.matmul(prefix_vector, suffix_vectors.t()).squeeze(dim=0)
+    return similarities, prefix_vector, suffix_vectors
 
 
 def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9, num_tokens=5, num_samples=10, max_length=115):
@@ -130,9 +118,13 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                         "text": beam["text"] + text,
                         "eos": eos
                     })
-            scores, _, _ = scorer(prefix=ctx, suffixes=[x["text"] for x in all_outs], prefix_vector=prefix_vector)
-            top_scores, top_indices = torch.topk(scores, k=beam_size)
-            beams = [all_outs[x] for x in top_indices]  # only track the top k beams
+            if len(all_outs) > 1:
+                # skip beam scoring if only one output to choose from
+                scores, _, _ = scorer(prefix=ctx, suffixes=[x["text"] for x in all_outs], prefix_vector=prefix_vector)
+                top_scores, top_indices = torch.topk(scores, k=beam_size)
+                beams = [all_outs[x] for x in top_indices]  # only track the top k beams
+            else:
+                beams = all_outs
 
             for beam in beams:
                 if len(tokenizer.tokenize(beam["text"])) >= max_length:
