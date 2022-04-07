@@ -22,6 +22,19 @@ def form_partitions(dataset, num_shards):
     return partitions
 
 
+def truncate(text):
+    last_punc = 0
+    if "." in text:
+        last_punc = max(last_punc, text.rindex("."))
+    if "?" in text:
+        last_punc = max(last_punc, text.rindex("?"))
+    if "!" in text:
+        last_punc = max(last_punc, text.rindex("!"))
+    if last_punc != 0:
+        text = text[:last_punc + 1]
+    return text
+
+
 def execute_gpt2(relevant_window, text_token_ids, tokenizer, model, output_hidden_states=False):
     num_ans_tokens = len(text_token_ids[0])
     inputs = tokenizer(" " + relevant_window, return_tensors="pt")

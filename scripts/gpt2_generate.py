@@ -10,7 +10,7 @@ import random
 import nltk
 
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from utils import execute_gpt2, cudafy_tokens, form_partitions
+from utils import execute_gpt2, cudafy_tokens, form_partitions, truncate
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jsonl")
