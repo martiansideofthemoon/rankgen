@@ -124,6 +124,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                 top_scores, top_indices = torch.topk(scores, k=beam_size)
                 beams = [all_outs[x] for x in top_indices]  # only track the top k beams
             else:
+                top_scores = [1.0]
                 beams = all_outs
 
             for beam in beams:
