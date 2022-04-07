@@ -10,12 +10,9 @@ import json
 from functools import partial
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from utils import form_partitions
-import nltk
 from t5x_embeddings import T5XEmbeddingGenerator
 from utils import truncate
 from transformers.utils import logging
-
-nltk.download('punkt')
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 logging.set_verbosity_error()
@@ -27,7 +24,7 @@ parser.add_argument('--beam_size', default=2, type=int)
 parser.add_argument('--num_tokens', default=20, type=int)
 parser.add_argument('--top_p', default=0.9, type=float)
 parser.add_argument('--model_size', default='medium', type=str)
-parser.add_argument('--retriever_model_path', default='/data/kalpesh/t5x_conversion', type=str)
+parser.add_argument('--retriever_model_path', default='t5x_conversion', type=str)
 parser.add_argument('--num_shards', default=1, type=int)
 parser.add_argument('--local_rank', default=0, type=int)
 parser.add_argument('--output_file', default=None, type=str)
