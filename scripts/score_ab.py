@@ -27,7 +27,10 @@ with open(args.input, "r") as f:
         data_input.append(row)
 
 header = data[0]
-data = [x for x in data[1:] if x[15] == 'A61R5PVQJ3QL5']
+data = [x for x in data[1:] if x[15] == 'A62QA1G7Q26UJ']
+data_dict = {f'{dd[27]} {dd[28]} {dd[29]}': 1 for dd in data}
+import pdb; pdb.set_trace()
+pass
 
 correct = 0
 wrong = 0
@@ -48,5 +51,8 @@ timestamps = [datetime.strptime(dd[18].replace('PDT ', ''), '%a %b %d %H:%M:%S %
 
 print(correct / len(data))
 print(len(data))
-import pdb; pdb.set_trace()
-pass
+
+for dd in data_input:
+    key = f'{dd[0]} {dd[1]} {dd[2]}'
+    if key not in data_dict:
+        print(dd)
