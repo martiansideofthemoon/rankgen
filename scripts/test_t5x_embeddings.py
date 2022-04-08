@@ -34,5 +34,6 @@ for eg_num, eg in tqdm.tqdm(enumerate(examples)):
     mean_prefix_diff.append(torch.mean(torch.abs(all_prefix_outs['embeddings'][eg_num] - ref_prefix_vec)).item())
     mean_suffix_diff.append(torch.mean(torch.abs(all_suffix_outs['embeddings'][eg_num] - ref_suffix_vec)).item())
 
+# Expected to be close to 10e-3
 print(np.mean(mean_prefix_diff))
 print(np.mean(mean_suffix_diff))

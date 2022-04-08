@@ -69,3 +69,4 @@ scripts/parallel/parallel_schedulers
 outputs
 .idea
 t5x_conversion
+outputs_beam
