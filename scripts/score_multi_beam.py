@@ -6,10 +6,13 @@ import mauve
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="outputs_beam/wiki_t5_large_beam_1_tokens_115_samples_1.jsonl")
+parser.add_argument('--data_length', default=7713, type=int)
 args = parser.parse_args()
 
 with open(args.dataset, 'r') as f:
     data = [json.loads(x) for x in f.read().strip().split("\n")]
+
+assert len(data) == args.data_length
 
 all_human = []
 all_gen = []
