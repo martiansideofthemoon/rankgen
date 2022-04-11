@@ -83,6 +83,7 @@ def scorer_t5x(t5x_embedder, prefix, suffixes, prefix_vector=None):
 def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9, num_tokens=5, num_samples=10, max_length=115):
     final_outputs = []
     final_scores = []
+    total_generated_tokens = 0
     for ctx in contexts:
         _, prefix_vector, _ = scorer(prefix=ctx, suffixes=[ctx])
         beams = [{
@@ -91,6 +92,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
         } for _ in range(beam_size)]
         while True:
             all_outs = []
+            max_new_tokens = min(num_tokens, max_length - total_generated_tokens)
             for beam in beams:
                 # if a beam has ended, add it to all_outs
                 if beam["eos"]:
@@ -102,7 +104,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                 num_input_tokens = len(inputs['input_ids'][0])
                 curr_outs = model.generate(**inputs, do_sample=True, output_scores=True,
                                            return_dict_in_generate=True,
-                                           max_new_tokens=num_tokens, top_k=None, top_p=top_p,
+                                           max_new_tokens=max_new_tokens, top_k=None, top_p=top_p,
                                            num_return_sequences=num_samples, temperature=temperature)
                 is_eos = []
                 for curr_out in curr_outs['sequences']:
@@ -117,6 +119,8 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                         "text": beam["text"] + text,
                         "eos": eos
                     })
+            # Each beam has total_generated_tokens length
+            total_generated_tokens += max_new_tokens
             if len(all_outs) > 1:
                 # skip beam scoring if only one output to choose from
                 scores, _, _ = scorer(prefix=ctx, suffixes=[x["text"] for x in all_outs], prefix_vector=prefix_vector)

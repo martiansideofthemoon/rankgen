@@ -29,8 +29,6 @@ with open(args.input, "r") as f:
 header = data[0]
 data = [x for x in data[1:] if x[15] == 'A62QA1G7Q26UJ']
 data_dict = {f'{dd[27]} {dd[28]} {dd[29]}': 1 for dd in data}
-import pdb; pdb.set_trace()
-pass
 
 correct = 0
 wrong = 0
