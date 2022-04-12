@@ -151,7 +151,8 @@ gen_seq_len = []
 logging.set_verbosity_error()
 
 if os.path.exists(args.output_file):
-    outputs = f.read().strip().split("\n")
+    with open(args.output_file, "r") as f:
+        outputs = f.read().strip().split("\n")
 
 for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
     if kk < len(outputs):
