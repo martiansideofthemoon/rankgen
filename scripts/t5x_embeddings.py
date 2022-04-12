@@ -10,9 +10,13 @@ import json
 
 
 class T5XEmbeddingGenerator():
-    def __init__(self, max_batch_size=32, model_path='.', cache_dir=None):
+    def __init__(self, max_batch_size=32, model_path='.', model_size=None, cache_dir=None):
         self.max_batch_size = max_batch_size
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if model_size is None:
+            self.model_size = "large" if "large" in model_path else "xl"
+        else:
+            self.model_size = model_size
 
         with open(os.path.join(model_path, 'state_dict.pickle'), 'rb') as handle:
             state_dict = pickle.load(handle)
@@ -30,13 +34,13 @@ class T5XEmbeddingGenerator():
             self.projection = torch.Tensor(pickle.load(handle))  # (1024, 1024), numpy array
 
         self.projection = self.projection.to(self.device)
-        self.tokenizer = T5Tokenizer.from_pretrained("google/t5-v1_1-large", cache_dir=cache_dir)
-        model = T5EncoderModel.from_pretrained("google/t5-v1_1-large", cache_dir=cache_dir)
-        self.model, _, _, _, _ = T5EncoderModel._load_pretrained_model(model, state_dict_new, None, "google/t5-v1_1-large")
+        self.tokenizer = T5Tokenizer.from_pretrained(f"google/t5-v1_1-{self.model_size}", cache_dir=cache_dir)
+        model = T5EncoderModel.from_pretrained(f"google/t5-v1_1-{self.model_size}", cache_dir=cache_dir)
+        self.model, _, _, _, _ = T5EncoderModel._load_pretrained_model(model, state_dict_new, None, f"google/t5-v1_1-{self.model_size}")
         self.model.to(self.device)
         self.model.eval()
 
-    def encode(self, inputs, vectors_type="prefix", verbose=False):
+    def encode(self, inputs, vectors_type="prefix", verbose=False, return_input_ids=False):
         tokenizer = self.tokenizer
         max_batch_size = self.max_batch_size
         if isinstance(inputs, str):
@@ -49,6 +53,7 @@ class T5XEmbeddingGenerator():
             max_length = 128
 
         all_embeddings = []
+        all_input_ids = []
         for i in tqdm.tqdm(range(0, len(inputs), max_batch_size), total=(len(inputs) // max_batch_size) + 1, disable=not verbose, desc=f"Encoding {vectors_type} inputs:"):
             tokenized_inputs = tokenizer(inputs[i:i + max_batch_size], return_tensors="pt", padding=True)
             for k, v in tokenized_inputs.items():
@@ -59,4 +64,9 @@ class T5XEmbeddingGenerator():
                 hidden_states = hidden_states[:, 0, :]
                 batch_embeddings = torch.matmul(hidden_states, self.projection)
             all_embeddings.append(batch_embeddings)
-        return {"embeddings": torch.cat(all_embeddings, dim=0)}
+            if return_input_ids:
+                all_input_ids.extend(tokenized_inputs.input_ids.cpu().tolist())
+        return {
+            "embeddings": torch.cat(all_embeddings, dim=0),
+            "input_ids": all_input_ids
+        }

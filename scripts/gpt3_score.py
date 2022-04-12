@@ -48,7 +48,7 @@ def evaluate_response(response, max_tokens):
     }
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', default="data/t5_xl_all_domains_pg19_hard.jsonl")
+parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_hard.jsonl")
 args = parser.parse_args()
 
 with open(args.dataset, "r") as f:

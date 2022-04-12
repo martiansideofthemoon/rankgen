@@ -5,6 +5,9 @@ import numpy as np
 import mauve
 import pickle
 import matplotlib.pyplot as plt
+from nltk import tokenize
+from nltk.corpus import stopwords
+from utils import f1_score
 
 
 parser = argparse.ArgumentParser()
@@ -24,8 +27,10 @@ for i in range(1):
     for dd in data:
         all_human.append(dd['prefix'] + ' ' + dd['targets'][0])
         random_gen = random.choice(dd['targets'][1:])
-        best_gen_idx = np.argmax(dd['scores'][1:]) + 1
-        best_gen = dd['targets'][best_gen_idx]
+
+        token_overlap_scores = [f1_score(x, dd['prefix'], stopwords=stopwords.words('english'))[0] for x in dd['targets'][1:]]
+        best_token_overlap_idx = np.argmax(token_overlap_scores) + 1
+        best_gen = dd['targets'][best_token_overlap_idx]
         all_gen.append(dd['prefix'] + ' ' + random_gen)
         all_max_score.append(dd['prefix'] + ' ' + best_gen)
 
@@ -50,8 +55,8 @@ for i in range(1):
         plt.savefig('plot.pdf', bbox_inches="tight")
 
     outputs = {
-        "max_gen_mauve": mauve2,
+        "token_overlap_mauve": mauve2,
         "random_gen_mauve": mauve1
     }
-    with open(args.dataset + ".mauve.pkl", "wb") as f:
+    with open(args.dataset + "token.mauve.pkl", "wb") as f:
         pickle.dump(outputs, f)
