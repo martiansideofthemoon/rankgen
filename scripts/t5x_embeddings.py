@@ -14,7 +14,7 @@ class T5XEmbeddingGenerator():
         self.max_batch_size = max_batch_size
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         if model_size is None:
-            self.model_size = "large" if "large" in model_path else "xl"
+            self.model_size = "large" if "t5_large" in model_path else "xl"
         else:
             self.model_size = model_size
 
