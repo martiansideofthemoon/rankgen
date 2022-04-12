@@ -150,7 +150,12 @@ gen_seq_len = []
 
 logging.set_verbosity_error()
 
+if os.path.exists(args.output_file):
+    outputs = f.read().strip().split("\n")
+
 for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
+    if kk < len(outputs):
+        continue
     token_beam_text, token_beam_scores = token_beam_search(contexts=[instance["prefix"]], scorer=scorer_fn, beam_size=args.beam_size,
                                                            top_p=args.top_p, num_tokens=args.num_tokens, num_samples=args.num_samples)
 
@@ -164,8 +169,11 @@ for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
     target_seq_len.append(len(instance["targets"][0].split()))
     gen_seq_len.append(len(token_beam_text[0].split()))
 
-    if (kk + 1) % 10 == 0:
+    if (kk + 1) % 100 == 0:
         print(f"Avg lens ({kk + 1} instances) = {np.mean(gen_seq_len)} generation, {np.mean(target_seq_len)} target")
+        print("Saving file...")
+        with open(args.output_file, "w") as f:
+            f.write("\n".join(outputs) + "\n")
 
 with open(args.output_file, "w") as f:
     f.write("\n".join(outputs) + "\n")
