@@ -45,7 +45,7 @@ if args.dataset.endswith(".jsonl"):
 
     if os.path.exists(args.output_path):
         with open(args.output_path, "r") as f:
-            outputs = [json.loads(x) for x in f.read().strip().split("\n")]
+            outputs = [x for x in f.read().strip().split("\n")]
     else:
         outputs = []
 
