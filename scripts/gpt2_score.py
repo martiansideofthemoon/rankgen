@@ -12,8 +12,9 @@ from utils import execute_gpt2, cudafy_tokens
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/t5_xl_all_domains_pg19_random.jsonl")
+parser.add_argument('--output_path', default=None)
 parser.add_argument('--model_size', default="medium")
-parser.add_argument('--num_negatives', default=10, type=int)
+parser.add_argument('--num_negatives', default=20, type=int)
 args = parser.parse_args()
 
 tokenizer = GPT2Tokenizer.from_pretrained(f"gpt2-{args.model_size}")
@@ -42,10 +43,15 @@ if args.dataset.endswith(".jsonl"):
     with open(args.dataset, "r") as f:
         data = [json.loads(x) for x in f.read().strip().split("\n")]
 
+    outputs = []
+
     for idx, dd in tqdm.tqdm(enumerate(data), total=len(data)):
         prefix = dd['prefix']
-        candidates = [dd['suffix']] + dd['negatives']
-        assert len(candidates) == 11
+        if 'targets' in dd:
+            candidates = dd['targets']
+        else:
+            candidates = [dd['suffix']] + dd['negatives']
+        assert len(candidates) == args.num_negatives + 1
         sequences = [prefix.strip() + " " + x.strip() for x in candidates]
         perplexities = compute_gpt2(sequences)
         avg_score.append(np.mean([perplexities[0] < y for y in perplexities[1:]]))
@@ -54,12 +60,25 @@ if args.dataset.endswith(".jsonl"):
         if (idx + 1) % 100 == 0:
             print(f"{np.mean(avg_score):.4f} average ({len(avg_score)} instances), {np.mean(all_score):.4f} all ({len(all_score)} instances)")
 
+        outputs.append(json.dumps({
+            "prefix": prefix,
+            "targets": candidates,
+            "scores": [-1 * x for x in perplexities]
+        }))
+
+    with open(args.output_path, "w") as f:
+        f.write("\n".join(outputs) + "\n")
+
 elif args.dataset.endswith(".tsv"):
     with open(args.dataset, "r") as f:
         data = [x.split("\t") for x in f.read().strip().split("\n")]
 
     outputs = []
-    output_path = args.dataset + ".ppl_scores"
+    if args.output_path:
+        output_path = args.output_path
+    else:
+        output_path = args.dataset + ".ppl_scores"
+
     if os.path.exists(output_path):
         with open(output_path, 'r') as f:
             outputs = [x for x in f.read().strip().split("\n")]

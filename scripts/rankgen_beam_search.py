@@ -44,16 +44,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 random.seed(49)
 random.shuffle(data)
 
-num_samples = args.num_samples
-orig_prec_scores = []
-orig_f1_scores = []
-baseline_prec_scores = []
-baseline_f1_scores = []
-generated_prec_scores = []
-generated_f1_scores = []
-
-
-exact_matches = 0
 random.seed(442)
 random.shuffle(data)
 

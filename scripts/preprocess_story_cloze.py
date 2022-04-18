@@ -2,7 +2,7 @@ import argparse
 import csv
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', default="data/story_cloze_spring_2016_val.csv")
+parser.add_argument('--dataset', default="data/story_cloze/story_cloze_spring_2016_test.csv")
 args = parser.parse_args()
 
 data = []
@@ -27,5 +27,5 @@ for dd in data:
     else:
         raise ValueError("Wrong Answer Ending")
 
-with open('data/story_cloze_spring_2016_val.tsv', 'w') as f:
+with open('data/story_cloze/story_cloze_spring_2016_test.tsv', 'w') as f:
     f.write(output)

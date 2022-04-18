@@ -81,6 +81,18 @@ def normalize_answer(s):
     return white_space_fix(remove_articles(remove_punc(lower(s))))
 
 
+def rep_statistic(prefix, suffix, window=20):
+    prefix_tokens = normalize_answer(prefix).split()
+    suffix_tokens = normalize_answer(suffix).split()
+    start_pos = len(prefix_tokens)
+    tokens = prefix_tokens + suffix_tokens
+    reps = [tokens[i] in tokens[i - window:i] for i in range(start_pos, len(tokens))]
+    if len(reps) == 0:
+        return 0.0
+    else:
+        return np.mean(reps)
+
+
 def f1_score(prediction, ground_truth, gram=1, stopwords=None):
     """Calculate word level F1 score."""
     prediction = normalize_answer(prediction)

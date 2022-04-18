@@ -70,3 +70,5 @@ outputs
 .idea
 t5x_conversion
 outputs_beam
+outputs_beam_xl
+data_new
