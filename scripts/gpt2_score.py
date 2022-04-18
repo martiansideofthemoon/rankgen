@@ -43,9 +43,15 @@ if args.dataset.endswith(".jsonl"):
     with open(args.dataset, "r") as f:
         data = [json.loads(x) for x in f.read().strip().split("\n")]
 
-    outputs = []
+    if os.path.exists(args.output_path):
+        with open(args.output_path, "r") as f:
+            outputs = [json.loads(x) for x in f.read().strip().split("\n")]
+    else:
+        outputs = []
 
     for idx, dd in tqdm.tqdm(enumerate(data), total=len(data)):
+        if idx < len(outputs):
+            continue
         prefix = dd['prefix']
         if 'targets' in dd:
             candidates = dd['targets']
@@ -65,6 +71,10 @@ if args.dataset.endswith(".jsonl"):
             "targets": candidates,
             "scores": [-1 * x for x in perplexities]
         }))
+
+        if idx % 100 == 0:
+            with open(args.output_path, "w") as f:
+                f.write("\n".join(outputs) + "\n")
 
     with open(args.output_path, "w") as f:
         f.write("\n".join(outputs) + "\n")

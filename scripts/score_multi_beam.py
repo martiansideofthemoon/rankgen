@@ -3,6 +3,7 @@ import json
 import random
 import numpy as np
 import mauve
+import pickle
 from utils import truncate
 
 parser = argparse.ArgumentParser()
@@ -40,7 +41,11 @@ for dd in data:
         generation = truncate(" ".join(generation.split()))
         num_tokens.append(len(generation.split()))
         all_gen.append(dd['prefix'] + ' ' + generation)
-        print(f"Average # of tokens in generation = {np.mean(num_tokens)}")
 
 mauve1 = mauve.compute_mauve(p_text=all_gen, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
 print(f"Generation score mauve = {mauve1.mauve}")
+
+outputs = {"max_gen_mauve": mauve1}
+
+with open(args.dataset + ".mauve.pkl", "wb") as f:
+    pickle.dump(outputs, f)
