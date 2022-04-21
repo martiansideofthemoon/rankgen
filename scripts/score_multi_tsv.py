@@ -7,7 +7,9 @@ import mauve
 import glob
 import os
 import tqdm
+import pickle
 from nltk import tokenize
+import spacy
 from nltk.corpus import stopwords
 from utils import f1_score, rep_statistic
 
@@ -17,6 +19,7 @@ parser.add_argument('--num_samples', default=None, type=int)
 parser.add_argument('--rep_window', default=20, type=int)
 parser.add_argument('--num_instances', default=7713, type=int)
 parser.add_argument('--eval_mauve', action='store_true')
+parser.add_argument('--eval_pos_overlap', action='store_true')
 args = parser.parse_args()
 
 
@@ -31,6 +34,11 @@ if len(files) == 8:
 
 latex_token_overlap = []
 latex_rep_score = []
+latex_token_overlap_ents = []
+
+
+if args.eval_pos_overlap:
+    nlp = spacy.load("en_core_web_sm")
 
 for file in files:
     with open(file, 'r') as f:
@@ -42,6 +50,10 @@ for file in files:
     assert len(data) % (args.num_samples + 1) == 0
 
     token_overlaps = {
+        "human": [],
+        "random": []
+    }
+    token_overlaps_ents = {
         "human": [],
         "random": []
     }
@@ -73,6 +85,16 @@ for file in files:
             rep_scores["human"].append(rep_statistic(data[i][0], data[i][1], window=args.rep_window))
             rep_scores["random"].append(rep_statistic(data[i][0], random_gen, window=args.rep_window))
 
+            if args.eval_pos_overlap and not os.path.exists(file + ".ent_overlap.pkl"):
+                prefix_nlp = nlp(data[i][0])
+                best_nlp = nlp(random_gen)
+                prefix_ents = " ".join([x.lemma_.lower() for x in prefix_nlp if x.pos_ in ["PROPN", "NUM", "NOUN"]])
+                best_ents = " ".join([x.lemma_.lower() for x in best_nlp if x.pos_ in ["PROPN", "NUM", "NOUN"]])
+
+                token_overlaps_ents["best"].append(
+                    f1_score(best_ents, prefix_ents, stopwords=stopwords.words('english'), gram=args.gram)[0]
+                )
+
         print(f"Results for {file}...")
         print(f"token overlap = {np.mean(token_overlaps['human']):.3f} human, {np.mean(token_overlaps['random']):.3f} random")
         print(f"rep = {np.mean(rep_scores['human']):.3f} human, {np.mean(rep_scores['random']):.3f} random")
@@ -80,8 +102,23 @@ for file in files:
         latex_token_overlap.append(np.mean(token_overlaps['random']))
         latex_rep_score.append(np.mean(rep_scores['random']))
 
+        if args.eval_pos_overlap:
+            latex_token_overlap_ents.append(np.mean(token_overlaps_ents['best']))
+            with open(file + ".ent_overlap.pkl", "wb") as f:
+                pickle.dump(token_overlaps_ents, f)
+
         if args.eval_mauve:
-            mauve1 = mauve.compute_mauve(p_text=all_gen, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
+            if os.path.exists(file + ".mauve.pkl"):
+                with open(file + ".mauve.pkl", "rb") as f:
+                    mauve_data = pickle.load(f)
+                    mauve1 = mauve_data["max_gen_mauve"]
+            else:
+                mauve1 = mauve.compute_mauve(p_text=all_gen, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
+                outputs = {
+                    "max_gen_mauve": mauve1
+                }
+                with open(file + ".mauve.pkl", "wb") as f:
+                    pickle.dump(outputs, f)
             print(mauve1.mauve)
             all_mauve.append(mauve1.mauve)
 

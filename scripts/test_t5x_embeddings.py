@@ -22,8 +22,12 @@ examples = [json.loads(x) for x in f.read().strip().split("\n")]
 mean_prefix_diff = []
 mean_suffix_diff = []
 
+start = time.time()
 all_prefix_outs = t5x_embedder.encode([x["inputs"]["inputs_pretokenized"] for x in examples],  vectors_type="prefix", verbose=True, return_input_ids=True)
 all_suffix_outs = t5x_embedder.encode([x["inputs"]["targets_pretokenized"] for x in examples],  vectors_type="suffix", verbose=True, return_input_ids=True)
+time_taken = time.time() - start
+
+print(f"Time taken = {time_taken / len(examples)}")
 
 for eg_num, eg in tqdm.tqdm(enumerate(examples)):
     ref_prefix_vec = torch.Tensor(eg['score']['input_embedding']).cuda()
