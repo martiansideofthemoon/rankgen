@@ -1,3 +1,4 @@
+from sys import prefix
 from transformers import T5Tokenizer, T5EncoderModel
 import pickle
 import argparse
@@ -24,7 +25,7 @@ parser.add_argument('--num_tokens', default=20, type=int)
 parser.add_argument('--top_p', default=0.9, type=float)
 parser.add_argument('--model_size', default='medium', type=str)
 parser.add_argument('--cache_dir', default=None, type=str)
-parser.add_argument('--retriever_model_path', default='t5x_conversion', type=str)
+parser.add_argument('--retriever_model_path', default='t5x_conversion/t5_xl_all', type=str)
 parser.add_argument('--num_shards', default=1, type=int)
 parser.add_argument('--local_rank', default=0, type=int)
 parser.add_argument('--output_file', default=None, type=str)
@@ -75,7 +76,10 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
     final_scores = []
     total_generated_tokens = 0
     for ctx in contexts:
-        _, prefix_vector, _ = scorer(prefix=ctx, suffixes=[ctx])
+        if beam_size == 1 and num_samples == 1:
+            prefix_vector = None
+        else:
+            _, prefix_vector, _ = scorer(prefix=ctx, suffixes=[ctx])
         beams = [{
             "text": "",
             "eos": False
