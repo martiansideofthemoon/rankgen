@@ -145,6 +145,8 @@ for file in files:
                     mauve2 = mauve_data["max_gen_mauve"]
                     if "random_gen_mauve" in mauve_data:
                         mauve1 = mauve_data["random_gen_mauve"]
+                    else:
+                        mauve1 = None
             else:
                 mauve2 = mauve.compute_mauve(p_text=all_max_score, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
             print(f"Max score mauve = {mauve2.mauve}")
@@ -152,9 +154,9 @@ for file in files:
 
         if args.eval_mauve and args.eval_type == "both" and mauve1 is None:
             mauve1 = mauve.compute_mauve(p_text=all_gen, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
+
+        if args.eval_mauve and mauve1 is not None:
             print(f"Random gen mauve = {mauve1.mauve}")
-        else:
-            mauve1 = None
 
         if i == 0 and args.plot_divergence:
             plt.rcParams.update({'font.size': 16})

@@ -14,7 +14,12 @@ class T5XEmbeddingGenerator():
         self.max_batch_size = max_batch_size
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         if model_size is None:
-            self.model_size = "large" if "t5_large" in model_path else "xl"
+            if "t5_large" in model_path:
+                self.model_size = "large"
+            elif "t5_xl" in model_path:
+                self.model_size = "xl"
+            else:
+                self.model_size = "base"
         else:
             self.model_size = model_size
 
@@ -22,6 +27,7 @@ class T5XEmbeddingGenerator():
             state_dict = pickle.load(handle)
 
         state_dict_new = {}
+
         for k, v in state_dict.items():
             if k != "encoder.embed_tokens.weight":
                 v = np.transpose(v)

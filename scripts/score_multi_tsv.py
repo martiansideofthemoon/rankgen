@@ -91,8 +91,8 @@ for file in files:
                 prefix_ents = " ".join([x.lemma_.lower() for x in prefix_nlp if x.pos_ in ["PROPN", "NUM", "NOUN"]])
                 best_ents = " ".join([x.lemma_.lower() for x in best_nlp if x.pos_ in ["PROPN", "NUM", "NOUN"]])
 
-                token_overlaps_ents["best"].append(
-                    f1_score(best_ents, prefix_ents, stopwords=stopwords.words('english'), gram=args.gram)[0]
+                token_overlaps_ents["random"].append(
+                    f1_score(best_ents, prefix_ents, stopwords=stopwords.words('english'))[0]
                 )
 
         print(f"Results for {file}...")
@@ -103,7 +103,7 @@ for file in files:
         latex_rep_score.append(np.mean(rep_scores['random']))
 
         if args.eval_pos_overlap:
-            latex_token_overlap_ents.append(np.mean(token_overlaps_ents['best']))
+            latex_token_overlap_ents.append(np.mean(token_overlaps_ents['random']))
             with open(file + ".ent_overlap.pkl", "wb") as f:
                 pickle.dump(token_overlaps_ents, f)
 
@@ -128,3 +128,4 @@ for file in files:
 
 print(f"Latex token overlap = {' & '.join([f'{100 * x:.1f}' for x in latex_token_overlap])} & {np.mean(latex_token_overlap):.3f}")
 print(f"Latex rep = {' & '.join([f'{100 * x:.1f}' for x in latex_rep_score])} & {np.mean(latex_rep_score):.3f}")
+print(f"Latex token overlap ents = {' & '.join([f'{100 * x:.1f}' for x in latex_token_overlap_ents])} & {np.mean(latex_token_overlap_ents):.3f}")
