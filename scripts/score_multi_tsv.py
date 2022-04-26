@@ -16,6 +16,7 @@ from utils import f1_score, rep_statistic
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/multi_outs/t5_xxl_descartes_wiki_greedy.tsv")
 parser.add_argument('--num_samples', default=None, type=int)
+parser.add_argument('--num_runs', default=1, type=int)
 parser.add_argument('--rep_window', default=20, type=int)
 parser.add_argument('--num_instances', default=7713, type=int)
 parser.add_argument('--eval_mauve', action='store_true')
@@ -25,24 +26,40 @@ args = parser.parse_args()
 
 files = glob.glob(args.dataset)
 
-if len(files) == 8:
-    base_dir = os.path.dirname(files[0])
-    assert all([os.path.dirname(x) == base_dir for x in files])
-    files = ['pg19_gpt2_medium.tsv', 'wiki_gpt2_medium.tsv', 'pg19_gpt2_xl.tsv', 'wiki_gpt2_xl.tsv',
-             'pg19_t5_xxl.tsv', 'wiki_t5_xxl.tsv', 'pg19_t5_xxl_descartes.tsv', 'wiki_t5_xxl_descartes.tsv']
-    files = [os.path.join(base_dir, f) for f in files]
+base_dir = os.path.dirname(files[0])
+assert all([os.path.dirname(x) == base_dir for x in files])
+files = ['pg19_gpt2_medium.tsv', 'wiki_gpt2_medium.tsv', 'pg19_gpt2_xl.tsv', 'wiki_gpt2_xl.tsv',
+            'pg19_t5_xxl.tsv', 'wiki_t5_xxl.tsv', 'pg19_t5_xxl_descartes.tsv', 'wiki_t5_xxl_descartes.tsv']
+files = [os.path.join(base_dir, f) for f in files]
 
 latex_token_overlap = []
 latex_rep_score = []
 latex_token_overlap_ents = []
+latex_mauve = []
 
 
 if args.eval_pos_overlap:
     nlp = spacy.load("en_core_web_sm")
 
 for file in files:
+    if not os.path.exists(file):
+        continue
     with open(file, 'r') as f:
         data = [x.split('\t') for x in f.read().strip().split("\n")]
+
+    if "wiki_" in file:
+        with open("data/multi_outs/t5_xxl_descartes_wiki_ppl.jsonl", "r") as f:
+            raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
+        for rid in raw_inp_data:
+            assert rid["prefix"] in data_dict
+            assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
+    elif "pg19_" in file:
+        with open("data_new/ppl/pg19_t5_xxl.jsonl", "r") as f:
+            raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
+        for rid in raw_inp_data:
+            assert rid["prefix"] in data_dict
+            assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
+
 
     if args.num_samples is None:
         args.num_samples = (len(data) // args.num_instances) - 1
@@ -63,7 +80,7 @@ for file in files:
     }
 
     all_mauve = []
-    for _ in range(1):
+    for idx in range(args.num_runs):
         all_human = []
         all_gen = []
         for i in range(0, len(data), args.num_samples + 1):
@@ -108,8 +125,11 @@ for file in files:
                 pickle.dump(token_overlaps_ents, f)
 
         if args.eval_mauve:
-            if os.path.exists(file + ".mauve.pkl"):
-                with open(file + ".mauve.pkl", "rb") as f:
+            mauve_file = file + ".mauve.pkl"
+            if idx > 0:
+                mauve_file += f".{idx}"
+            if os.path.exists(mauve_file):
+                with open(mauve_file, "rb") as f:
                     mauve_data = pickle.load(f)
                     mauve1 = mauve_data["max_gen_mauve"]
             else:
@@ -117,15 +137,16 @@ for file in files:
                 outputs = {
                     "max_gen_mauve": mauve1
                 }
-                with open(file + ".mauve.pkl", "wb") as f:
+                with open(mauve_file, "wb") as f:
                     pickle.dump(outputs, f)
-            print(mauve1.mauve)
+            # print(mauve1.mauve)
             all_mauve.append(mauve1.mauve)
 
     if args.eval_mauve:
-        print(all_mauve)
         print(np.mean(all_mauve))
+        latex_mauve.append(np.mean(all_mauve))
 
 print(f"Latex token overlap = {' & '.join([f'{100 * x:.1f}' for x in latex_token_overlap])} & {np.mean(latex_token_overlap):.3f}")
 print(f"Latex rep = {' & '.join([f'{100 * x:.1f}' for x in latex_rep_score])} & {np.mean(latex_rep_score):.3f}")
 print(f"Latex token overlap ents = {' & '.join([f'{100 * x:.1f}' for x in latex_token_overlap_ents])} & {np.mean(latex_token_overlap_ents):.3f}")
+print(f"Mauve latex = {' & '.join([f'{x:.3f}' for x in latex_mauve])} & {np.mean(latex_mauve):.3f}")

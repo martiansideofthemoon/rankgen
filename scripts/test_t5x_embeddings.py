@@ -16,6 +16,8 @@ args = parser.parse_args()
 
 t5x_embedder = T5XEmbeddingGenerator(model_path=args.model_path, cache_dir=None)
 
+parameters = sum(p.numel() for p in t5x_embedder.model.parameters()) + t5x_embedder.projection.numel()
+
 f = open(os.path.join(args.model_path, "examples.jsonl"), "r")
 examples = [json.loads(x) for x in f.read().strip().split("\n")]
 

@@ -28,8 +28,10 @@ files = glob.glob(args.dataset)
 
 base_dir = os.path.dirname(files[0])
 assert all([os.path.dirname(x) == base_dir for x in files])
-files = ['pg19_gpt2_medium.jsonl', 'wiki_gpt2_medium.jsonl', 'pg19_gpt2_xl.jsonl', 'wiki_gpt2_xl.jsonl',
-         'pg19_t5_xxl.jsonl', 'wiki_t5_xxl.jsonl', 'pg19_t5_xxl_descartes.jsonl', 'wiki_t5_xxl_descartes.jsonl']
+files = ['pg19_t5_xxl_descartes.jsonl', 'wiki_t5_xxl_descartes.jsonl',
+         'pg19_gpt2_medium.jsonl', 'wiki_gpt2_medium.jsonl',
+         'pg19_gpt2_xl.jsonl', 'wiki_gpt2_xl.jsonl',
+         'pg19_t5_xxl.jsonl', 'wiki_t5_xxl.jsonl']
 files = [os.path.join(base_dir, f) for f in files]
 
 if args.eval_pos_overlap:
@@ -49,6 +51,21 @@ for file in files:
         continue
     with open(file, 'r') as f:
         data = [json.loads(x) for x in f.read().strip().split("\n")]
+
+    data_dict = {x["prefix"]: x for x in data}
+    if "wiki_" in file:
+        with open("data/multi_outs/t5_xxl_descartes_wiki_ppl.jsonl", "r") as f:
+            raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
+        for rid in raw_inp_data:
+            assert rid["prefix"] in data_dict
+            assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
+    elif "pg19_" in file:
+        with open("data_new/ppl/pg19_t5_xxl.jsonl", "r") as f:
+            raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
+        for rid in raw_inp_data:
+            assert rid["prefix"] in data_dict
+            assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
+
 
     token_overlaps = {
         "human": [],
@@ -148,6 +165,7 @@ for file in files:
                     else:
                         mauve1 = None
             else:
+                mauve1 = None
                 mauve2 = mauve.compute_mauve(p_text=all_max_score, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
             print(f"Max score mauve = {mauve2.mauve}")
             latex_mauve.append(mauve2.mauve)

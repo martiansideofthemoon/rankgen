@@ -94,7 +94,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                     continue
                 # otherwise generate the next n tokens
                 inputs = tokenizer(ctx + beam['text'], truncation=True, padding="longest",
-                                    return_tensors="pt").to(device)
+                                    return_tensors="pt", max_length=1024 - max_new_tokens).to(device)
                 num_input_tokens = len(inputs['input_ids'][0])
                 curr_outs = model.generate(**inputs, do_sample=True, output_scores=True,
                                            return_dict_in_generate=True,

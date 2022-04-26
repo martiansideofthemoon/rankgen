@@ -6,12 +6,44 @@ import collections as cll
 import torch
 import numpy as np
 from scipy.stats import kendalltau
+import subprocess
 
 
 def cudafy_tokens(tokens):
     for x, y in tokens.items():
         tokens[x] = y.cuda()
     return tokens
+
+
+class Bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+    @classmethod
+    def postprocess(cls, input_str):
+        input_str = input_str.replace("<h>", cls.HEADER)
+        input_str = input_str.replace("<blue>", cls.OKBLUE)
+        input_str = input_str.replace("<green>", cls.OKGREEN)
+        input_str = input_str.replace("<yellow>", cls.WARNING)
+        input_str = input_str.replace("<red>", cls.FAIL)
+        input_str = input_str.replace("</>", cls.ENDC)
+        input_str = input_str.replace("<b>", cls.BOLD)
+        input_str = input_str.replace("<u>", cls.UNDERLINE)
+        input_str = input_str.replace("<clean>", "")
+        return input_str
+
+
+def export_server(output, filename):
+    with open("{}.txt".format(filename), "w") as f:
+        f.write(Bcolors.postprocess(output) + "\n")
+    subprocess.check_output("cat {0}.txt | ansi2html.sh --palette=linux --bg=dark > {0}.html".format(filename), shell=True)
+    subprocess.check_output("rm {}.txt".format(filename), shell=True)
 
 
 def form_partitions(dataset, num_shards):
