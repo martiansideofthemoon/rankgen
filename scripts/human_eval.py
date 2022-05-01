@@ -31,7 +31,7 @@ for i, n in enumerate(nucleus_data[:args.num_instances]):
     for j, b in enumerate(beam_data):
         if b['prefix'] == n['prefix']:
             beam_gen = b['targets'][1]
-        beam_instance_num = j
+            beam_instance_num = j
     if order < 0.5:
         output.append([
             n["prefix"], beam_gen, nucleus_gen, "beam,nucleus", i, beam_instance_num, args.dataset, args.folder, args.nucleus_dataset, args.beam_dataset
