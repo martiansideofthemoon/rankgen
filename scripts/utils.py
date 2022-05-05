@@ -62,6 +62,8 @@ def truncate(text):
         last_punc = max(last_punc, text.rindex("?"))
     if "!" in text:
         last_punc = max(last_punc, text.rindex("!"))
+    if ";" in text:
+        last_punc = max(last_punc, text.rindex(";"))
     if last_punc != 0:
         text = text[:last_punc + 1]
     return text

@@ -9,8 +9,9 @@ from scipy.stats import kendalltau
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input', default="ab_tests/gold_neg_wiki_hard/input.csv")
-parser.add_argument('--dataset', default="ab_tests/gold_neg_wiki_hard/Batch_351796_batch_results.csv")
+parser.add_argument('--input', default="ab_tests/gold_neg_wiki_random/input.csv")
+parser.add_argument('--dataset', default="ab_tests/gold_neg_wiki_random/Batch_351346_batch_results.csv")
+parser.add_argument('--worker_id', default="A61R5PVQJ3QL5")
 parser.add_argument('--num_instances', default=200)
 args = parser.parse_args()
 
@@ -27,7 +28,7 @@ with open(args.input, "r") as f:
         data_input.append(row)
 
 header = data[0]
-data = [x for x in data[1:] if x[15] == 'A62QA1G7Q26UJ']
+data = [x for x in data[1:] if x[15] == args.worker_id]
 data_dict = {f'{dd[27]} {dd[28]} {dd[29]}': 1 for dd in data}
 
 correct = 0
@@ -50,7 +51,7 @@ timestamps = [datetime.strptime(dd[18].replace('PDT ', ''), '%a %b %d %H:%M:%S %
 print(correct / len(data))
 print(len(data))
 
-for dd in data_input:
-    key = f'{dd[0]} {dd[1]} {dd[2]}'
-    if key not in data_dict:
-        print(dd)
+# for dd in data_input:
+#     key = f'{dd[0]} {dd[1]} {dd[2]}'
+#     if key not in data_dict:
+#         print(dd)

@@ -14,13 +14,14 @@ args = parser.parse_args()
 
 os.makedirs(args.folder, exist_ok=True)
 
+file_pairs = []
+
 with open(args.dataset, "r") as f:
     data = [json.loads(x) for x in f.read().strip().split("\n")]
 
-
 random.seed(46)
 
-output = [["Prefix", "First", "Second", "Order", "InstanceNum", "Folder"]]
+output = [["Prefix", "First", "Second", "Order", "InstanceNum", "File"]]
 
 for i, dd in enumerate(data[:args.num_instances]):
     negative = random.choice(dd["negatives"])

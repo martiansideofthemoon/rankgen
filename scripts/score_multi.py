@@ -91,6 +91,7 @@ for file in files:
     for i in range(1):
         all_human = []
         all_gen = []
+        num_tokens_random = []
         num_tokens = []
         all_max_score = []
         for dd in tqdm.tqdm(data):
@@ -101,6 +102,7 @@ for file in files:
             all_gen.append(dd['prefix'] + ' ' + random_gen)
             all_max_score.append(dd['prefix'] + ' ' + best_gen)
             num_tokens.append(len(best_gen.split()))
+            num_tokens_random.append(len(random_gen.split()))
 
             token_overlaps["human"].append(
                 f1_score(dd['targets'][0], dd['prefix'], stopwords=stopwords.words('english'), gram=args.gram)[0]
@@ -130,6 +132,8 @@ for file in files:
                 )
 
         print(f"Results for {file}...")
+        print(f"Best gen num tokens = {np.mean(num_tokens)}")
+        print(f"Random gen num tokens = {np.mean(num_tokens_random)}")
         print(f"Human token overlap = {np.mean(token_overlaps['human']):.3f}")
         print(f"Random token overlap = {np.mean(token_overlaps['random']):.3f}")
         print(f"Best gen token overlap = {np.mean(token_overlaps['best']):.3f}")
