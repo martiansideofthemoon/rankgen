@@ -156,6 +156,8 @@ for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
 
     token_beam_text = token_beam_text[0]
     token_beam_text = [truncate(" ".join(x.split())) for x in token_beam_text]
+    if "scores" not in instance:
+        instance["scores"] = [1.0]
     outputs.append(json.dumps({
         "prefix": instance["prefix"],
         "targets": instance["targets"][0:1] + token_beam_text,

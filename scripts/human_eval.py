@@ -6,40 +6,70 @@ import random
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--nucleus_dataset', default="/mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval/files_human_eval/pg19_gpt2_medium.jsonl")
-parser.add_argument('--beam_dataset', default="/mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval/files_human_eval/pg19_t5_xl_beam_2_tokens_20_samples_10.jsonl")
-parser.add_argument('--folder', default="ab_tests/pg19_nucleus_vs_beam")
-parser.add_argument('--dataset', default="pg19")
-parser.add_argument('--num_instances', default=200)
+parser.add_argument('--folder', default="ab_tests/gpt2_medium_nucleus_vs_beam")
+parser.add_argument('--num_instances', default=50)
 args = parser.parse_args()
 
-os.makedirs(args.folder, exist_ok=True)
+BASE_DIR = "files_human_eval"
 
-with open(args.nucleus_dataset, "r") as f:
-    nucleus_data = [json.loads(x) for x in f.read().strip().split("\n")]
-with open(args.beam_dataset, "r") as f:
-    beam_data = [json.loads(x) for x in f.read().strip().split("\n")]
+files = [
+    # GPT2-medium
+    {"nucleus": ["pg19", "gpt2_medium", "pg19_gpt2_medium.jsonl"],
+     "beam": ["pg19", "gpt2_medium", "pg19_t5_xl_beam_2_tokens_20_samples_10.jsonl"]},
+    {"nucleus": ["wiki", "gpt2_medium", "wiki_gpt2_medium.jsonl"],
+     "beam": ["wiki", "gpt2_medium", "wiki_t5_xl_beam_2_tokens_20_samples_10.jsonl"]},
+    # T5-XXL descartes
+    # {"nucleus": ["pg19", "t5_xxl_descartes", "pg19_t5_xxl_descartes.jsonl"],
+    #  "beam": ["pg19", "t5_xxl_descartes", "pg19_beam_2_num_tokens_20_num_samples_10.jsonl"]},
+    # {"nucleus": ["wiki", "t5_xxl_descartes", "wiki_t5_xxl_descartes.jsonl"],
+    #  "beam": ["wiki", "t5_xxl_descartes", "wiki_beam_2_num_tokens_20_num_samples_10.jsonl"]},
+]
 
 random.seed(43)
 
-output = [["Prefix", "First", "Second", "Order", "NucleusInstanceNum", "BeamInstanceNum", "Dataset", "Folder", "NucleusPath", "BeamPath"]]
+os.makedirs(args.folder, exist_ok=True)
 
-for i, n in enumerate(nucleus_data[:args.num_instances]):
-    nucleus_gen = random.choice(n['targets'][1:])
-    order = random.random()
-    beam_instance_num = i
-    for j, b in enumerate(beam_data):
-        if b['prefix'] == n['prefix']:
-            beam_gen = b['targets'][1]
-            beam_instance_num = j
-    if order < 0.5:
-        output.append([
-            n["prefix"], beam_gen, nucleus_gen, "beam,nucleus", i, beam_instance_num, args.dataset, args.folder, args.nucleus_dataset, args.beam_dataset
-        ])
-    else:
-        output.append([
-            n["prefix"], nucleus_gen, beam_gen, "nucleus,beam", i, beam_instance_num, args.dataset, args.folder, args.nucleus_dataset, args.beam_dataset
-        ])
+output = [["Prefix", "First", "Second", "Order", "Dataset", "Model"]]
+
+for file_pair in files:
+    model = file_pair["nucleus"][1]
+    dataset = file_pair["nucleus"][0]
+
+    nucleus_file = file_pair["nucleus"][2]
+    with open(f"{BASE_DIR}/{model}/{nucleus_file}", "r") as f:
+        nucleus_data = [json.loads(x) for x in f.read().strip().split("\n")]
+
+    beam_file = file_pair["beam"][2]
+    with open(f"{BASE_DIR}/{model}/{beam_file}", "r") as f:
+        beam_data = [json.loads(x) for x in f.read().strip().split("\n")]
+
+    random.shuffle(nucleus_data)
+
+    for i, nucleus_instance in enumerate(nucleus_data[:args.num_instances]):
+        beam_instance = None
+        for j, dd2 in enumerate(beam_data):
+            if dd2['prefix'] == nucleus_instance['prefix']:
+                beam_instance = dd2
+                break
+
+        assert beam_instance["prefix"] == nucleus_instance["prefix"]
+
+        nucleus_gen = random.choice(nucleus_instance['targets'][1:])
+        order = random.random()
+
+        if model == "gpt2_medium":
+            beam_gen = beam_instance["targets"][1]
+        elif model == "t5_xxl_descartes":
+            beam_gen = beam_instance["t5_xxl_descartes_outputs"][0]
+
+        if order < 0.5:
+            output.append([
+                nucleus_instance["prefix"], beam_gen, nucleus_gen, "beam,nucleus", dataset, model
+            ])
+        else:
+            output.append([
+                nucleus_instance["prefix"], nucleus_gen, beam_gen, "nucleus,beam", dataset, model
+            ])
 
 with open(args.folder + "/input.csv", 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
