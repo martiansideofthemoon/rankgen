@@ -33,7 +33,7 @@ if args.domain == "wiki":
     for rid in raw_inp_data:
         assert rid["prefix"] in data_dict
         assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
-else:
+elif args.domain == "pg19":
     with open("data_new/ppl/pg19_t5_xxl.jsonl", "r") as f:
         raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
     for rid in raw_inp_data:
