@@ -13,6 +13,7 @@ parser.add_argument('--dataset', default="outputs_beam/wiki_t5_large_beam_1_toke
 parser.add_argument('--domain', default="wiki")
 parser.add_argument('--gen_key_type', default="second_idx")
 parser.add_argument('--data_length', default=7713, type=int)
+parser.add_argument('--max_mauve_length', default=768, type=int)
 parser.add_argument('--truncate', default=None, type=int)
 parser.add_argument('--refresh', action='store_true')
 args = parser.parse_args()
@@ -24,8 +25,6 @@ data_dict = {x["prefix"]: x for x in data}
 
 mauve_output_key = "random_gen_mauve" if "random" in args.gen_key_type else "max_gen_mauve"
 
-assert len(data) == args.data_length
-assert len(data_dict) == args.data_length
 
 if args.domain == "wiki":
     with open("data/multi_outs/t5_xxl_descartes_wiki_ppl.jsonl", "r") as f:
@@ -39,6 +38,15 @@ elif args.domain == "pg19":
     for rid in raw_inp_data:
         assert rid["prefix"] in data_dict
         assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
+else:
+    with open(args.domain, "r") as f:
+        raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
+    for rid in raw_inp_data:
+        assert rid["prefix"] in data_dict
+        assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
+
+assert len(data) == len(raw_inp_data)
+assert len(data_dict) == len(raw_inp_data)
 
 all_human = []
 all_gen = []
@@ -86,7 +94,7 @@ else:
 if mauve_output_key in mauve_data and not args.refresh:
     print(f"Generation score mauve = {mauve_data[mauve_output_key].mauve}")
 else:
-    mauve1 = mauve.compute_mauve(p_text=all_gen, q_text=all_human, device_id=0, max_text_length=768, verbose=False)
+    mauve1 = mauve.compute_mauve(p_text=all_gen, q_text=all_human, device_id=0, max_text_length=args.max_mauve_length, verbose=False)
     print(f"Generation score mauve = {mauve1.mauve}")
     mauve_data[mauve_output_key] = mauve1
 
