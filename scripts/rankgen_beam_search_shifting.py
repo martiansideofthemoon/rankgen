@@ -26,6 +26,7 @@ parser.add_argument('--dataset', default="data/multi_outs/t5_xxl_descartes_wiki_
 parser.add_argument('--num_samples', default=10, type=int)
 parser.add_argument('--beam_size', default=2, type=int)
 parser.add_argument('--num_tokens', default=20, type=int)
+parser.add_argument('--num_total_gen_tokens', default=256, type=int)
 parser.add_argument('--top_p', default=0.9, type=float)
 parser.add_argument('--model_size', default='medium', type=str)
 parser.add_argument('--cache_dir', default=None, type=str)
@@ -124,32 +125,12 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                     else:
                         is_eos.append(False)
                 curr_outs_text = postprocess(curr_outs['sequences'][:, num_input_tokens:])
-                for tokens, text, eos in zip(curr_outs['sequences'][:, num_input_tokens:], curr_outs_text, is_eos):
-                    curr_outs_sents = sent_tokenize(text)
-                    # if a full sentence has been generated
-                    if len(curr_outs_sents) > 1:
-                        # remove first sentence from prefix and append generated sentence to prefix
-                        prefix_sents = nltk.sent_tokenize(beam["prefix_text"])[1:]
-                        prefix_sents.append(curr_outs_sents[0])
-                        while len(tokenizer(' '.join(prefix_sents))['input_ids']) > 256:
-                            prefix_sents.pop(0)
-                        prefix_text = ' '.join(prefix_sents)
-                        prefix_tokens = tokenizer(prefix_text, truncation=True, padding="longest", return_tensors="pt")[
-                            'input_ids']
-                        prefix_tokens = prefix_tokens.to(device)
-                        all_outs.append({
-                            "prefix_text": prefix_text,
-                            "prefix_tokens": prefix_tokens,
-                            "text": beam["text"] + text,
-                            "eos": eos
-                        })
-                    else:
-                        all_outs.append({
-                            "prefix_text": beam['prefix_text'],
-                            "prefix_tokens": beam['prefix_tokens'],
-                            "text": beam["text"] + text,
-                            "eos": eos
-                        })
+                for text, eos in zip(curr_outs_text, is_eos):
+                    # update all_outs
+                    all_outs.append({
+                        "text": beam["text"] + text,
+                        "eos": eos
+                    })
 
             # Each beam has total_generated_tokens length
             total_generated_tokens += max_new_tokens
@@ -171,6 +152,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                 final_outputs.append([x["text"] for x in beams])
                 final_scores.append(top_scores)
                 break
+
     return final_outputs, final_scores
 
 
@@ -190,13 +172,22 @@ if os.path.exists(args.output_file):
 for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
     if kk < len(outputs):
         continue
-    token_beam_text, token_beam_scores = token_beam_search(contexts=[instance["prefix"]], scorer=scorer_fn,
-                                                           beam_size=args.beam_size,
-                                                           top_p=args.top_p, num_tokens=args.num_tokens,
-                                                           num_samples=args.num_samples)
-
-    token_beam_text = token_beam_text[0]
-    token_beam_text = [truncate(" ".join(x.split())) for x in token_beam_text]
+    num_gen_tokens = 0
+    prefix = instance['prefix']
+    while num_gen_tokens < args.num_total_gen_tokens:
+        token_beam_text, token_beam_scores = token_beam_search(contexts=[prefix], scorer=scorer_fn,
+                                                               beam_size=args.beam_size,
+                                                               top_p=args.top_p, num_tokens=args.num_tokens,
+                                                               num_samples=args.num_samples)
+        output = token_beam_text[0][0]
+        output_sents = sent_tokenize(output)
+        prefix_sents = nltk.sent_tokenize(instance["prefix"])
+        prefix_sents.append(output_sents[0])
+        num_gen_tokens += len(tokenizer.tokenize(output_sents[0]))
+        while len(tokenizer(' '.join(prefix_sents))['input_ids']) > 256:
+            prefix_sents.pop(0)
+        prefix_text = ' '.join(prefix_sents)
+        prefix = prefix_text
     outputs.append(json.dumps({
         "prefix": instance["prefix"],
         "targets": instance["targets"][0:1] + token_beam_text,
