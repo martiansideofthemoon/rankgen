@@ -22,6 +22,7 @@ parser.add_argument('--dataset', default="data/multi_outs/t5_xxl_descartes_wiki_
 parser.add_argument('--num_samples', default=10, type=int)
 parser.add_argument('--beam_size', default=2, type=int)
 parser.add_argument('--num_tokens', default=20, type=int)
+parser.add_argument('--max_length', default=115, type=int)
 parser.add_argument('--top_p', default=0.9, type=float)
 parser.add_argument('--model_size', default='medium', type=str)
 parser.add_argument('--cache_dir', default=None, type=str)
@@ -152,7 +153,8 @@ for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
     if kk < len(outputs):
         continue
     token_beam_text, token_beam_scores = token_beam_search(contexts=[instance["prefix"]], scorer=scorer_fn, beam_size=args.beam_size,
-                                                           top_p=args.top_p, num_tokens=args.num_tokens, num_samples=args.num_samples)
+                                                           top_p=args.top_p, num_tokens=args.num_tokens, num_samples=args.num_samples,
+                                                           max_length=args.max_length)
 
     token_beam_text = token_beam_text[0]
     token_beam_text = [truncate(" ".join(x.split())) for x in token_beam_text]

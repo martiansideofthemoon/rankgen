@@ -38,15 +38,17 @@ elif args.domain == "pg19":
     for rid in raw_inp_data:
         assert rid["prefix"] in data_dict
         assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
-else:
+elif args.domain != "None":
     with open(args.domain, "r") as f:
         raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
     for rid in raw_inp_data:
         assert rid["prefix"] in data_dict
         assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
-
-assert len(data) == len(raw_inp_data)
-assert len(data_dict) == len(raw_inp_data)
+else:
+    raw_inp_data = [None for _ in range(7711)]
+# print(len(data_dict))
+# assert len(data) == len(raw_inp_data)
+# assert len(data_dict) == len(raw_inp_data)
 
 all_human = []
 all_gen = []

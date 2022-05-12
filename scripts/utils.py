@@ -15,6 +15,41 @@ def cudafy_tokens(tokens):
     return tokens
 
 
+def extend_sequence(sents, sent_lens, start, limit, exceed_len=False,
+                    direction='prefix', skip_sentences=None):
+  """Extend a sequence by adding more sentences in prefix or suffix."""
+  curr_value = start
+  total_length = sent_lens[curr_value]
+  full_sequence = sents[curr_value]
+  assert len(sents) == len(sent_lens)
+
+  if direction == 'prefix':
+    increment = -1
+    concat_fn = lambda curr, extra: extra + ' ' + curr
+    continue_fn = lambda x: x >= 0
+  else:
+    increment = 1
+    concat_fn = lambda curr, extra: curr + ' ' + extra
+    continue_fn = lambda x: x < len(sents)
+
+  while total_length < limit and continue_fn(curr_value + increment):
+    proposed_length = total_length + sent_lens[curr_value + increment]
+    if not exceed_len and proposed_length > limit:
+      break
+    if skip_sentences and (curr_value + increment) in skip_sentences:
+      break
+    curr_value += increment
+    full_sequence = concat_fn(curr=full_sequence, extra=sents[curr_value])
+    total_length += sent_lens[curr_value]
+
+  if direction == 'prefix':
+    assert curr_value <= start
+  else:
+    assert curr_value >= start
+
+  return full_sequence, curr_value
+
+
 class Bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
