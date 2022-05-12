@@ -17,12 +17,12 @@ from t5x_embeddings import T5XEmbeddingGenerator
 from utils import truncate
 from transformers.utils import logging
 
-nltk.download('punkt')
-
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+nltk.download('punkt')
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', default="data/multi_outs/t5_xxl_descartes_wiki_ppl.jsonl", type=str)
+parser.add_argument('--dataset', default="/mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval/data/multi_outs/t5_xxl_descartes_wiki_ppl.jsonl", type=str)
 parser.add_argument('--num_samples', default=10, type=int)
 parser.add_argument('--beam_size', default=2, type=int)
 parser.add_argument('--num_tokens', default=20, type=int)
@@ -68,38 +68,24 @@ def postprocess(outputs):
     return tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
 
-def truncate(text):
-    last_punc = 0
-    if "." in text:
-        last_punc = max(last_punc, text.rindex("."))
-    if "?" in text:
-        last_punc = max(last_punc, text.rindex("?"))
-    if "!" in text:
-        last_punc = max(last_punc, text.rindex("!"))
-    if last_punc != 0:
-        text = text[:last_punc + 1]
-    return text
-
-
-def scorer_t5x(t5x_embedder, prefixes, suffixes, prefix_vectors=None):
-    if prefix_vectors is None:
-        prefix_vectors = t5x_embedder.encode(prefixes, vectors_type="prefix")["embeddings"]
+def scorer_t5x(t5x_embedder, prefix, suffixes, prefix_vector=None):
+    if prefix_vector is None:
+        prefix_vector = t5x_embedder.encode(prefix, vectors_type="prefix")["embeddings"]
     suffix_vectors = t5x_embedder.encode(suffixes, vectors_type="suffix")["embeddings"]
-    matmul = torch.matmul(prefix_vectors, suffix_vectors.t()).squeeze(dim=0)
-    similarities = torch.from_numpy(np.diagonal(matmul.cpu().numpy()))
-    return similarities, prefix_vectors, suffix_vectors
+    similarities = torch.matmul(prefix_vector, suffix_vectors.t()).squeeze(dim=0)
+    return similarities, prefix_vector, suffix_vectors
 
 
-def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9, num_tokens=5, num_samples=10,
-                      max_length=115):
+def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9, num_tokens=5, num_samples=10, max_length=115):
     final_outputs = []
     final_scores = []
     total_generated_tokens = 0
     for ctx in contexts:
-        ctx_tokens = tokenizer(ctx, truncation=True, padding="longest", return_tensors="pt")['input_ids']
+        if beam_size == 1 and num_samples == 1:
+            prefix_vector = None
+        else:
+            _, prefix_vector, _ = scorer(prefix=ctx, suffixes=[ctx])
         beams = [{
-            "prefix_text": ctx,
-            "prefix_tokens": ctx_tokens,
             "text": "",
             "eos": False
         } for _ in range(beam_size)]
@@ -112,9 +98,10 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                     all_outs.append(beam)
                     continue
                 # otherwise generate the next n tokens
-                inputs = beam['prefix_tokens'].to(device)
-                num_input_tokens = inputs.size()[1]
-                curr_outs = model.generate(inputs, do_sample=True, output_scores=True,
+                inputs = tokenizer(ctx + beam['text'], truncation=True, padding="longest",
+                                    return_tensors="pt", max_length=1024 - max_new_tokens).to(device)
+                num_input_tokens = len(inputs['input_ids'][0])
+                curr_outs = model.generate(**inputs, do_sample=True, output_scores=True,
                                            return_dict_in_generate=True,
                                            max_new_tokens=max_new_tokens, top_k=None, top_p=top_p,
                                            num_return_sequences=num_samples, temperature=temperature)
@@ -131,12 +118,11 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                         "text": beam["text"] + text,
                         "eos": eos
                     })
-
             # Each beam has total_generated_tokens length
             total_generated_tokens += max_new_tokens
             if len(all_outs) > 1:
                 # skip beam scoring if only one output to choose from
-                scores, _, _ = scorer(prefixes=[x["prefix_text"] for x in all_outs], suffixes=[x["text"] for x in all_outs], prefix_vectors=None)
+                scores, _, _ = scorer(prefix=ctx, suffixes=[x["text"] for x in all_outs], prefix_vector=prefix_vector)
                 top_scores, top_indices = torch.topk(scores, k=beam_size)
                 beams = [all_outs[x] for x in top_indices]  # only track the top k beams
             else:
@@ -152,9 +138,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                 final_outputs.append([x["text"] for x in beams])
                 final_scores.append(top_scores)
                 break
-
     return final_outputs, final_scores
-
 
 scorer_fn = partial(scorer_t5x, t5x_embedder=t5x_embedder)
 
@@ -174,6 +158,8 @@ for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
         continue
     num_gen_tokens = 0
     prefix = instance['prefix']
+    all_gen_text = ""
+    all_scores = []
     while num_gen_tokens < args.num_total_gen_tokens:
         token_beam_text, token_beam_scores = token_beam_search(contexts=[prefix], scorer=scorer_fn,
                                                                beam_size=args.beam_size,
@@ -181,20 +167,26 @@ for kk, instance in tqdm.tqdm(enumerate(data), total=len(data)):
                                                                num_samples=args.num_samples)
         output = token_beam_text[0][0]
         output_sents = sent_tokenize(output)
+        if len(output_sents) == 0:
+            continue
         prefix_sents = nltk.sent_tokenize(instance["prefix"])
         prefix_sents.append(output_sents[0])
+        all_gen_text += output_sents[0]
+        all_scores.append(token_beam_scores[0].cpu().tolist())
         num_gen_tokens += len(tokenizer.tokenize(output_sents[0]))
         while len(tokenizer(' '.join(prefix_sents))['input_ids']) > 256:
             prefix_sents.pop(0)
         prefix_text = ' '.join(prefix_sents)
         prefix = prefix_text
+    if "scores" not in instance:
+        instance["scores"] = [1.0]
     outputs.append(json.dumps({
         "prefix": instance["prefix"],
-        "targets": instance["targets"][0:1] + token_beam_text,
-        "scores": instance["scores"][0:1] + token_beam_scores[0].cpu().tolist()
+        "targets": instance["targets"][0:1] + [all_gen_text],
+        "scores": instance["scores"][0:1] + all_scores
     }))
     target_seq_len.append(len(instance["targets"][0].split()))
-    gen_seq_len.append(len(token_beam_text[0].split()))
+    gen_seq_len.append(len(all_gen_text.split()))
 
     if (kk + 1) % 100 == 0:
         print(f"Avg lens ({kk + 1} instances) = {np.mean(gen_seq_len)} generation, {np.mean(target_seq_len)} target")
