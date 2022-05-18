@@ -44,21 +44,21 @@ if args.eval_pos_overlap:
 for file in files:
     if not os.path.exists(file):
         continue
+    print(file)
     with open(file, 'r') as f:
         data = [x.split('\t') for x in f.read().strip().split("\n")]
+        data_dict = {dd[0]: dd[1] for dd in data}
 
     if "wiki_" in file:
-        with open("data/multi_outs/t5_xxl_descartes_wiki_ppl.jsonl", "r") as f:
+        with open("data_new/ppl/wiki_t5_xxl.jsonl", "r") as f:
             raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
-        for rid in raw_inp_data:
+        for rid in tqdm.tqdm(raw_inp_data):
             assert rid["prefix"] in data_dict
-            assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
     elif "pg19_" in file:
         with open("data_new/ppl/pg19_t5_xxl.jsonl", "r") as f:
             raw_inp_data = [json.loads(x) for x in f.read().strip().split("\n")]
-        for rid in raw_inp_data:
+        for rid in tqdm.tqdm(raw_inp_data):
             assert rid["prefix"] in data_dict
-            assert rid["targets"][0] == data_dict[rid["prefix"]]["targets"][0]
 
 
     if args.num_samples is None:
@@ -83,7 +83,7 @@ for file in files:
     for idx in range(args.num_runs):
         all_human = []
         all_gen = []
-        for i in range(0, len(data), args.num_samples + 1):
+        for i in tqdm.tqdm(range(0, len(data), args.num_samples + 1)):
             gen_suffices = []
             for j in range(1, args.num_samples + 1):
                 assert data[i][0] == data[i + j][0]
@@ -119,10 +119,14 @@ for file in files:
         latex_token_overlap.append(np.mean(token_overlaps['random']))
         latex_rep_score.append(np.mean(rep_scores['random']))
 
-        if args.eval_pos_overlap:
+        if args.eval_pos_overlap and not os.path.exists(file + ".ent_overlap.pkl"):
             latex_token_overlap_ents.append(np.mean(token_overlaps_ents['random']))
             with open(file + ".ent_overlap.pkl", "wb") as f:
                 pickle.dump(token_overlaps_ents, f)
+        else:
+            with open(file + ".ent_overlap.pkl", "rb") as f:
+                token_overlaps_ents = pickle.load(f)
+            latex_token_overlap_ents.append(np.mean(token_overlaps_ents['random']))
 
         if args.eval_mauve:
             mauve_file = file + ".mauve.pkl"
