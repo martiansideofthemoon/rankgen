@@ -16,7 +16,7 @@ from statsmodels.stats.inter_rater import fleiss_kappa
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', default="human_eval_data/*")
+parser.add_argument('--dataset', default="human-eval-data/*")
 parser.add_argument('--split', default=None)
 parser.add_argument('--model', default=None)
 args = parser.parse_args()
@@ -62,15 +62,11 @@ for fl in files:
     header = curr_data[0]
     data.extend(curr_data[1:])
 
-print(len(data))
-
 if args.split is not None:
     data = [x for x in data if x[31] == args.split]
 
 if args.model is not None:
     data = [x for x in data if x[32] == args.model]
-
-print(len(data))
 
 worker_ids = list(set([x[15] for x in data]))
 worker_ids.sort()
@@ -98,9 +94,6 @@ for worker in worker_ids:
         print(f"{worker} results:")
         print(Counter(verdicts))
 
-print("Overall ---")
-
-print_counter(all_workers)
 
 # Agreement between annotators
 annotations = []
@@ -133,11 +126,19 @@ for hit_id in hit_ids:
 
 table = np.array(table)
 
+print("")
+
 print(f"Fleiss ({len(table)} pairs) = {fleiss_kappa(table)}")
 print_counter(unique)
+print("")
 
-print("Majority votes ---")
+print("Majority vote accuracy ---")
 print_counter(majority)
+print("")
+
+print("Absolute accuracy ---")
+print_counter(all_workers)
+print("")
 
 # Scarecrow statistics
 
@@ -156,7 +157,6 @@ for k, v in scarecrow_beam.items():
 
 print("All annotators --- ")
 scarecrow_list = [x for x in scarecrow_list if x]
-print(len(scarecrow_list))
 scarecrow_all = process_scarecrow(scarecrow_list)
 for k, v in scarecrow_all.items():
     print(f"{k} = {v * 100 / len(scarecrow_list):.1f}")

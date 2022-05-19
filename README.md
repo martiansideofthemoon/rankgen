@@ -1,51 +1,53 @@
-## RankGen
+## RankGen - Improving Text Generation with Large Ranking Models
 
-## Running token beam search
+This is the official repository for our preprint, "RankGen - Improving Text Generation with Large Ranking Models". RankGen is a 1.2 billion encoder model which maps prefixes and generations from any language model (in continutation to the prefix) to a shared vector space. Re-ranking with RankGen as well as integrating RankGen in beam search significantly improves generation quality (0.85 vs 0.77 MAUVE, 75% preference according to humans annotators who are English writers).
 
-### Setup
+This repository will contain human evaluation data, link to HuggingFace compatible model checkpoints, and code to integrate RankGen in beam search on HuggingFace models. RankGen is trained by fine-tuning the T5-XL encoder using the [T5X library](https://github.com/google-research/t5x).
 
-0. Clone the repository https://github.com/martiansideofthemoon/presuf-retrieval
+### Human evaluation data
 
-1. Make sure you have the latest HuggingFace `transformers` library.
-
-2. Run the test script
+We conducted our human evaluation on Upwork, hiring English teachers and writers. We performed blind A/B testing between RankGen and nucleus sampling. We also asked our annotators to provide a 1-3 sentence explanation. You can find all the 600 annotations across two files in [`human-eval-data`](human-eval-data). To compute the evaluation scores run,
 
 ```
-python scripts/test_t5x_embeddings.py
+python scripts/score_ab_text.py
 ```
 
-2. The t5x checkpoint is located in `/mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval/t5x_conversion`
+### Model checkpoints
 
-3. Running the script
+coming soon! (aiming for 26th May, 2022)
+
+### Running beam search with RankGen
+
+The main file is [`scripts/rankgen_beam_search.py`](scripts/rankgen_beam_search.py). This file will require RankGen checkpoints, which will be added to the repository soon!
+
+**Setup** ---
 
 ```
-cd /mnt/nfs/work1/miyyer/kalpesh/projects/presuf-retrieval
-
-python scripts/parallel/schedule.py --command "python scripts/rankgen_beam_search.py --retriever_model_path t5x_conversion --num_tokens 10 --num_samples 10 --beam_size 2 --output_file outputs_beam/wiki_t5_large_beam_2_tokens_10_samples_10.jsonl" --num_shards 20 --partition_type "1080ti-short"
-
-# See all expts in scripts/parallel/parallel_logs/expts.txt
-
-cat scripts/parallel/parallel_logs/logs_exp_<expid>/log_<shard_id>.txt
-
-grep -H Error scripts/parallel/parallel_logs/logs_exp_13/*
-grep -H CANCEL scripts/parallel/parallel_logs/logs_exp_13/*
-
-# If num_shards > 1 then run the command below
-python scripts/parallel/merge.py --input_pattern "outputs_beam/wiki_t5_large_beam_2_tokens_10_samples_10.jsonl.shard*"
-
-# Check file is right size (7713)
-wc -l python scripts/score_multi_beam.py --dataset outputs_beam/wiki_t5_large_beam_2_tokens_10_samples_10.jsonl
-
-# MAUVE score
-python scripts/score_multi_beam.py --dataset outputs_beam/wiki_t5_large_beam_2_tokens_10_samples_10.jsonl
+virtualenv rankgen-venv
+source rankgen-venv/bin/activate
+pip install torch torchvision # currently, this is the version compatible with CUDA 10.1
+pip install transformers
 ```
 
-**Running without parallelization**
+Run the test script to make sure the RankGen checkpoint has loaded correctly,
 
-Takes longer (probably overnight), needs long queues, but less issues with sharding / Gypsum file system failures
+```
+python scripts/test_t5x_embeddings.py --model_path t5x_conversion/t5_xl_all
 
-* Find a `rtx8000-long` node, ask me if you need to run more. For low memory jobs you can also use `2080ti-long` or `1080ti-long`
+### Expected output
+0.0006388302952054898
+0.0007493323556995418
+```
 
-**Running with parallelization**
+Running beam search,
 
-* Found `1080ti-long` to be best. `rtx8000-long` / `rtx8000-short` seem to be reliable too.. Avoid `titanx` / `m40`. `2080ti-long` is a mixed bag
+```
+python scripts/rankgen_beam_search.py --retriever_model_path t5x_conversion/t5_xl_all \
+    --num_tokens 20 --num_samples 10 --beam_size 2 --output_file outputs_beam/wiki_t5_xl_beam_2_tokens_20_samples_10.jsonl
+```
+
+Evaluating using MAUVE (make sure JSONL file has several thousand generations for intuitive MAUVE scores, 7713 in our experiments),
+
+```
+python scripts/score_multi_beam.py --dataset outputs_beam/wiki_t5_xl_beam_2_tokens_10_samples_10.jsonl
+```

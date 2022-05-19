@@ -5,7 +5,6 @@ import pickle
 import collections as cll
 import torch
 import numpy as np
-from scipy.stats import kendalltau
 import subprocess
 
 
