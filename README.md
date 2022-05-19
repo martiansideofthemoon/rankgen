@@ -4,6 +4,10 @@ This is the official repository for our preprint, "RankGen - Improving Text Gene
 
 This repository will contain human evaluation data, link to HuggingFace compatible model checkpoints, and code to integrate RankGen in beam search on HuggingFace models. RankGen is trained by fine-tuning the T5-XL encoder using the [T5X library](https://github.com/google-research/t5x).
 
+### Paper
+
+See [`paper.pdf`](paper.pdf) for now, it should be up on arXiv soon!
+
 ### Human evaluation data
 
 We conducted our human evaluation on Upwork, hiring English teachers and writers. We performed blind A/B testing between RankGen and nucleus sampling. We also asked our annotators to provide a 1-3 sentence explanation. You can find all the 600 annotations across two files in [`human-eval-data`](human-eval-data). To compute the evaluation scores run,
