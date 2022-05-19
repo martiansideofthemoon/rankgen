@@ -16,7 +16,7 @@ from statsmodels.stats.inter_rater import fleiss_kappa
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', default="ab_tests/gpt2_medium_nucleus_vs_beam/Batch_355182_scarecrow.csv,ab_tests/t5_xxl_descartes_nucleus_vs_beam/Batch_355545_scarecrow.csv")
+parser.add_argument('--dataset', default="human_eval_data/*")
 parser.add_argument('--split', default=None)
 parser.add_argument('--model', default=None)
 args = parser.parse_args()
@@ -52,7 +52,7 @@ def print_counter(x):
 
 data = []
 header = None
-files = args.dataset.split(",")
+files = glob.glob(args.dataset)
 for fl in files:
     curr_data = []
     with open(fl, "r") as f:
@@ -115,28 +115,21 @@ for hit_id in hit_ids:
 
     anns = get_multi_annotations(data_small)
 
-    if len(anns) > 1:
-        unique.append(len(set(anns)))
+    unique.append(len(set(anns)))
 
-    if len(anns) >= 3:
-        for ann in anns[:3]:
-            if ann == "text 1":
-                curr_entry[0] += 1
-            elif ann == "text 2":
-                curr_entry[1] += 1
-        if len(anns) > 3:
-            print(hit_id)
-            print(anns)
-        vote = most_common(anns)
-        if vote == "text 1":
-            majority.append(text1)
-        elif vote == "text 2":
-            majority.append(text2)
-        table.append(curr_entry)
-    elif "A3L504J7C1FWQ8" not in workers:
-        print(hit_id)
-        #print(len(anns))
-        #print(hit_id)
+    for ann in anns[:3]:
+        if ann == "text 1":
+            curr_entry[0] += 1
+        elif ann == "text 2":
+            curr_entry[1] += 1
+
+    vote = most_common(anns)
+    if vote == "text 1":
+        majority.append(text1)
+    elif vote == "text 2":
+        majority.append(text2)
+    table.append(curr_entry)
+
 
 table = np.array(table)
 
@@ -152,7 +145,7 @@ def process_scarecrow(sc_anns):
     totals = defaultdict(int)
     for sca in sc_anns:
         types = [x.strip() for x in sca.split(", ")]
-        types = [x for x in types if x != "equal"]
+        types = [x for x in types if x != "equal" and x.strip()]
         for tp in types:
             totals[tp] += 1 / len(types)
     return totals
@@ -162,39 +155,8 @@ for k, v in scarecrow_beam.items():
     scarecrow_list.extend(v)
 
 print("All annotators --- ")
+scarecrow_list = [x for x in scarecrow_list if x]
+print(len(scarecrow_list))
 scarecrow_all = process_scarecrow(scarecrow_list)
 for k, v in scarecrow_all.items():
     print(f"{k} = {v * 100 / len(scarecrow_list):.1f}")
-
-# for k, v in scarecrow_beam.items():
-#     print(f"Worker {k} --- ")
-#     scarecrow_worker = process_scarecrow(v)
-#     for k, v2 in scarecrow_worker.items():
-#         print(f"{k} = {v2 * 100 / len(v):.1f}")
-
-
-# ann_file = args.dataset + ".scarecrow.pkl"
-# if os.path.exists(ann_file):
-#     with open(ann_file, "r") as f:
-#         annotations = json.loads(f.read())
-# else:
-#     annotations = {}
-
-# data[0].append("Scarecrow")
-# assign_ids = [x[14] for x in data]
-# for dd in tqdm.tqdm(data):
-#     assgn_id = dd[14]
-
-#     if assgn_id in annotations:
-#         dd.append(annotations[assgn_id])
-#         with open(f"{args.dataset}.anns.csv", 'w') as csvfile:
-#             spamwriter = csv.writer(csvfile)
-#             for x in data:
-#                 spamwriter.writerow(x)
-#         continue
-#     print(f"\nPrompt = {dd[27]}\nText 1 = {dd[28]}\nText 2 = {dd[29]}\n\n")
-#     print(f"Annotation = {dd[-1]}")
-#     rating = input("Scarecrow rating? ")
-#     annotations[assgn_id] = rating
-#     with open(ann_file, "w") as f:
-#         f.write(json.dumps(annotations))
