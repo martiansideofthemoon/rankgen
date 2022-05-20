@@ -1,6 +1,6 @@
 ## RankGen - Improving Text Generation with Large Ranking Models
 
-This is the official repository for our preprint, "RankGen - Improving Text Generation with Large Ranking Models" (https://arxiv.org/abs/2205.09726). RankGen is a 1.2 billion encoder model which maps prefixes and generations from any language model (in continutation to the prefix) to a shared vector space. Re-ranking with RankGen as well as integrating RankGen in beam search significantly improves generation quality (0.85 vs 0.77 [MAUVE](https://arxiv.org/abs/2102.01454), 75% preference according to humans annotators who are English writers).
+This is the official repository for our preprint, [RankGen - Improving Text Generation with Large Ranking Models](https://arxiv.org/abs/2205.09726). RankGen is a 1.2 billion encoder model which maps prefixes and generations from any language model (in continutation to the prefix) to a shared vector space. Re-ranking with RankGen as well as integrating RankGen in beam search significantly improves generation quality (0.85 vs 0.77 [MAUVE](https://arxiv.org/abs/2102.01454), 75% preference according to humans annotators who are English writers).
 
 This repository will contain human evaluation data, link to HuggingFace compatible model checkpoints, and code to integrate RankGen in beam search on HuggingFace models. RankGen is trained by fine-tuning the T5-XL encoder using the [T5X library](https://github.com/google-research/t5x).
 
