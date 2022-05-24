@@ -4,9 +4,11 @@ This is the official repository for our preprint, [RankGen - Improving Text Gene
 
 This repository will contain human evaluation data, link to HuggingFace compatible model checkpoints, and code to integrate RankGen in beam search on HuggingFace models. RankGen is trained by fine-tuning the T5-XL encoder using the [T5X library](https://github.com/google-research/t5x).
 
-### Paper
+### Model checkpoints
 
-See [`paper.pdf`](paper.pdf) for now, it should be up on arXiv soon!
+HuggingFace XL checkpoints - [here](https://drive.google.com/drive/folders/1m8ujkAqkBBWYAJISZigz1Lw4tQGbZXaY?usp=sharing)
+
+T5X JAX checkpoints (base, large, XL) - [here](https://github.com/google-research/google-research/tree/master/rankgen)
 
 ### Human evaluation data
 
@@ -16,9 +18,6 @@ We conducted our human evaluation on Upwork, hiring English teachers and writers
 python scripts/score_ab_text.py
 ```
 
-### Model checkpoints
-
-coming soon! (aiming for 26th May, 2022)
 
 ### Running beam search with RankGen
 
@@ -36,7 +35,7 @@ pip install transformers
 Run the test script to make sure the RankGen checkpoint has loaded correctly,
 
 ```
-python scripts/test_t5x_embeddings.py --model_path t5x_conversion/t5_xl_all
+python scripts/test_t5x_embeddings.py --model_path rankgen_models/t5_xl_all
 
 ### Expected output
 0.0006388302952054898
@@ -46,7 +45,7 @@ python scripts/test_t5x_embeddings.py --model_path t5x_conversion/t5_xl_all
 Running beam search,
 
 ```
-python scripts/rankgen_beam_search.py --retriever_model_path t5x_conversion/t5_xl_all \
+python scripts/rankgen_beam_search.py --retriever_model_path rankgen_models/t5_xl_all \
     --num_tokens 20 --num_samples 10 --beam_size 2 --output_file outputs_beam/wiki_t5_xl_beam_2_tokens_20_samples_10.jsonl
 ```
 
