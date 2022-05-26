@@ -15,6 +15,10 @@ T5X JAX checkpoints (base, large, XL) - [here](https://github.com/google-researc
 
 The main file is [`scripts/rankgen_beam_search.py`](scripts/rankgen_beam_search.py). This file will require RankGen checkpoints, which will be added to the repository soon!
 
+**Data Download** ---
+
+Get the data here - [link](https://drive.google.com/drive/folders/1DRG2ess7fK3apfB-6KoHb_azMuHbsIv4?usp=sharing). Place folder in root directory.
+
 **Setup** ---
 
 ```
@@ -37,8 +41,11 @@ python scripts/test_t5x_embeddings.py --model_path rankgen_models/t5_xl_all
 Running beam search,
 
 ```
-python scripts/rankgen_beam_search.py --retriever_model_path rankgen_models/t5_xl_all \
-    --num_tokens 20 --num_samples 10 --beam_size 2 --output_file outputs_beam/wiki_t5_xl_beam_2_tokens_20_samples_10.jsonl
+python scripts/rankgen_beam_search.py \
+    --dataset rankgen_data/wiki.jsonl \
+    --retriever_model_path rankgen_models/t5_xl_all \
+    --num_tokens 20 --num_samples 10 --beam_size 2 \
+    --output_file outputs_beam/wiki_t5_xl_beam_2_tokens_20_samples_10.jsonl
 ```
 
 Evaluating using MAUVE (make sure JSONL file has several thousand generations for intuitive MAUVE scores, 7713 in our experiments),
