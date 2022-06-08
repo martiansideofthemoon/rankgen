@@ -13,7 +13,7 @@ T5X JAX checkpoints (base, large, XL) - [here](https://github.com/google-researc
 
 ### Running beam search with RankGen
 
-The main file is [`scripts/rankgen_beam_search.py`](scripts/rankgen_beam_search.py). This file will require RankGen checkpoints, which will be added to the repository soon!
+The main file is [`scripts/rankgen_beam_search.py`](scripts/rankgen_beam_search.py). To run this file, you must already have a RankGen checkpoint downloaded. 
 
 **Data Download** ---
 
