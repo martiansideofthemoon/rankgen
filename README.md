@@ -26,6 +26,7 @@ virtualenv rankgen-venv
 source rankgen-venv/bin/activate
 pip install torch torchvision # currently, this is the version compatible with CUDA 10.1
 pip install transformers
+pip install sentencepiece
 ```
 
 Run the test script to make sure the RankGen checkpoint has loaded correctly,
