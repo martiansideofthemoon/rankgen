@@ -11,7 +11,7 @@ import json
 from functools import partial
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from utils import form_partitions
-from t5x_embeddings import T5XEmbeddingGenerator
+from rankgen_encoder import RankGenEncoder
 from utils import truncate
 from transformers.utils import logging
 
@@ -40,7 +40,7 @@ if args.num_shards > 1:
     data = partitions[args.local_rank]
     args.output_file = f'{args.output_file}.shard_{args.local_rank}'
 
-t5x_embedder = T5XEmbeddingGenerator(model_path=args.retriever_model_path, cache_dir=args.cache_dir)
+rankgen_model = RankGenEncoder(model_path=args.retriever_model_path, cache_dir=args.cache_dir)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 random.seed(49)
@@ -64,10 +64,10 @@ def postprocess(outputs):
     return tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
 
-def scorer_t5x(t5x_embedder, prefix, suffixes, prefix_vector=None):
+def scorer_t5x(rankgen_model, prefix, suffixes, prefix_vector=None):
     if prefix_vector is None:
-        prefix_vector = t5x_embedder.encode(prefix, vectors_type="prefix")["embeddings"]
-    suffix_vectors = t5x_embedder.encode(suffixes, vectors_type="suffix")["embeddings"]
+        prefix_vector = rankgen_model.encode(prefix, vectors_type="prefix")["embeddings"]
+    suffix_vectors = rankgen_model.encode(suffixes, vectors_type="suffix")["embeddings"]
     similarities = torch.matmul(prefix_vector, suffix_vectors.t()).squeeze(dim=0)
     return similarities, prefix_vector, suffix_vectors
 
@@ -136,7 +136,7 @@ def token_beam_search(contexts, scorer, beam_size=3, temperature=1.0, top_p=0.9,
                 break
     return final_outputs, final_scores
 
-scorer_fn = partial(scorer_t5x, t5x_embedder=t5x_embedder)
+scorer_fn = partial(scorer_t5x, rankgen_model=rankgen_model)
 
 outputs = []
 

@@ -13,7 +13,7 @@ from nltk.tokenize import sent_tokenize
 from functools import partial
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from utils import form_partitions
-from t5x_embeddings import T5XEmbeddingGenerator
+from rankgen_encoder import RankGenEncoder
 from utils import truncate
 from transformers.utils import logging
 
@@ -43,7 +43,7 @@ if args.num_shards > 1:
     data = partitions[args.local_rank]
     args.output_file = f'{args.output_file}.shard_{args.local_rank}'
 
-t5x_embedder = T5XEmbeddingGenerator(model_path=args.retriever_model_path, cache_dir=args.cache_dir)
+t5x_embedder = RankGenEncoder(model_path=args.retriever_model_path, cache_dir=args.cache_dir)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 random.seed(49)

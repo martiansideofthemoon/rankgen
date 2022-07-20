@@ -5,7 +5,7 @@ import tqdm
 import os
 import numpy as np
 import time
-from t5x_embeddings import T5XEmbeddingGenerator
+from rankgen_encoder import RankGenEncoder
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', default="kalpeshk2011/rankgen-t5-base-all", type=str)
@@ -20,7 +20,7 @@ test_example_file_map = {
     "kalpeshk2011/rankgen-t5-xl-pg19": "rankgen_data/test_examples/t5_xl_pg19.jsonl"
 }
 
-rankgen_model = T5XEmbeddingGenerator(args.model_path)
+rankgen_model = RankGenEncoder(args.model_path)
 
 parameters = sum(p.numel() for p in rankgen_model.model.parameters())
 
@@ -31,10 +31,9 @@ mean_prefix_diff = []
 mean_suffix_diff = []
 
 start = time.time()
-with torch.inference_mode():
-    all_prefix_outs = rankgen_model.encode([x["inputs"]["inputs_pretokenized"] for x in examples], vectors_type="prefix", verbose=True, return_input_ids=True)
-    all_suffix_outs = rankgen_model.encode([x["inputs"]["targets_pretokenized"] for x in examples], vectors_type="suffix", verbose=True, return_input_ids=True)
-    time_taken = time.time() - start
+all_prefix_outs = rankgen_model.encode([x["inputs"]["inputs_pretokenized"] for x in examples], vectors_type="prefix", verbose=True, return_input_ids=True)
+all_suffix_outs = rankgen_model.encode([x["inputs"]["targets_pretokenized"] for x in examples], vectors_type="suffix", verbose=True, return_input_ids=True)
+time_taken = time.time() - start
 
 print(f"Time taken = {time_taken / len(examples)}")
 
