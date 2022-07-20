@@ -4,22 +4,32 @@ This is the official repository for our preprint, [RankGen - Improving Text Gene
 
 This repository contains human evaluation data, links to HuggingFace-compatible model checkpoints, and code to integrate RankGen in beam search on HuggingFace models. RankGen is trained by fine-tuning the T5-XL encoder using the [T5X library](https://github.com/google-research/t5x).
 
+### Updates
+
+* (July 2022) RankGen checkpoints are now available on the HuggingFace Model Hub ([link](https://huggingface.co/kalpeshk2011))!
+
 ### Model checkpoints
 
-HuggingFace XL checkpoints - [here](https://drive.google.com/drive/folders/1m8ujkAqkBBWYAJISZigz1Lw4tQGbZXaY?usp=sharing)
+All RankGen checkpoints are available on the HuggingFace Model Hub - [link](https://huggingface.co/kalpeshk2011)
+
+We recommend using `RankGen-XL-all`.
+
+| Checkpoint        | Size | Model Name                        | HF Hub Link                                                      |
+|-------------------|------|-----------------------------------|------------------------------------------------------------------|
+| RankGen-base-all  | 0.1B | kalpeshk2011/rankgen-t5-base-all  | [link](https://huggingface.co/kalpeshk2011/rankgen-t5-base-all)  |
+| RankGen-large-all | 0.3B | kalpeshk2011/rankgen-t5-large-all | [link](https://huggingface.co/kalpeshk2011/rankgen-t5-large-all) |
+| RankGen-XL-all    | 1.2B | kalpeshk2011/rankgen-t5-xl-all    | [link](https://huggingface.co/kalpeshk2011/rankgen-t5-xl-all)    |
+| RankGen-XL-PG19   | 1.2B | kalpeshk2011/rankgen-t5-xl-pg19   | [link](https://huggingface.co/kalpeshk2011/rankgen-t5-xl-pg19)   |
+
+*Older versions of the checkpoints*:
+
+RankGen XL checkpoints compatible with `T5XEmbeddingGeneratorLegacy` - [here](https://drive.google.com/drive/folders/1m8ujkAqkBBWYAJISZigz1Lw4tQGbZXaY?usp=sharing)
 
 T5X JAX checkpoints (base, large, XL) - [here](https://github.com/google-research/google-research/tree/master/rankgen)
 
+### Setup
 
-### Running beam search with RankGen
-
-The main file is [`scripts/rankgen_beam_search.py`](scripts/rankgen_beam_search.py). To run this file, you must already have a RankGen checkpoint downloaded. 
-
-**Data Download** ---
-
-Get the data here - [link](https://drive.google.com/drive/folders/1DRG2ess7fK3apfB-6KoHb_azMuHbsIv4?usp=sharing). Place folder in root directory.
-
-**Setup** ---
+**Installation**
 
 ```
 virtualenv rankgen-venv
@@ -27,24 +37,56 @@ source rankgen-venv/bin/activate
 pip install torch torchvision # currently, this is the version compatible with CUDA 10.1
 pip install transformers
 pip install sentencepiece
+pip install gdown # optional dependency
+```
+
+**Data Download**
+
+Get the data [here](https://drive.google.com/drive/folders/1DRG2ess7fK3apfB-6KoHb_azMuHbsIv4?usp=sharing) and place folder in root directory. Alternatively, use `gdown` as shown below,
+
+```
+gdown --folder https://drive.google.com/drive/folders/1DRG2ess7fK3apfB-6KoHb_azMuHbsIv4
 ```
 
 Run the test script to make sure the RankGen checkpoint has loaded correctly,
 
 ```
-python scripts/test_t5x_embeddings.py --model_path rankgen_models/t5_xl_all
+python scripts/test_t5x_embeddings.py --model_path kalpeshk2011/rankgen-t5-base-all
 
 ### Expected output
-0.0006388302952054898
-0.0007493323556995418
+0.0009239262409127233
+0.0011521980725477804
 ```
 
-Running beam search,
+### Using RankGen
+
+Loading RankGen is simple using the HuggingFace APIs, but we suggest using [`T5XEmbeddingGenerator`](scripts/t5x_embeddings.py) for correctly processing data.
+
+```
+from transformers import T5Tokenizer, AutoModel
+
+self.tokenizer = T5Tokenizer.from_pretrained("google/t5-v1_1-xl", cache_dir=cache_dir)
+self.model = AutoModel.from_pretrained("kalpeshk2011/rankgen-t5-xl-all", trust_remote_code=True)
+```
+
+In order to perform tokenization correctly & simplify the data preprocessing code, we have wrapped this into the [`T5XEmbeddingGenerator`](scripts/t5x_embeddings.py) class. Please see [`scripts/test_t5x_embeddings.py`](scripts/test_t5x_embeddings.py) for an example of the usage (below is a snippet from the file).
+
+```
+from t5x_embeddings import T5XEmbeddingGenerator
+hf_model = T5XEmbeddingGenerator(args.model_path)
+
+with torch.inference_mode():
+    all_prefix_outs = hf_model.encode([x["inputs"]["inputs_pretokenized"] for x in examples], vectors_type="prefix", verbose=True, return_input_ids=True)
+```
+
+### Running beam search with RankGen
+
+The main file is [`scripts/rankgen_beam_search.py`](scripts/rankgen_beam_search.py). To execute it,
 
 ```
 python scripts/rankgen_beam_search.py \
     --dataset rankgen_data/wiki.jsonl \
-    --retriever_model_path rankgen_models/t5_xl_all \
+    --retriever_model_path kalpeshk2011/rankgen-t5-xl-all \
     --num_tokens 20 --num_samples 10 --beam_size 2 \
     --output_file outputs_beam/wiki_t5_xl_beam_2_tokens_20_samples_10.jsonl
 ```

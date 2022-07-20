@@ -1,6 +1,5 @@
 import argparse
 import json
-from tabnanny import verbose
 import torch
 import tqdm
 import os
@@ -9,25 +8,33 @@ import time
 from t5x_embeddings import T5XEmbeddingGenerator
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_path', default="t5x_conversion/t5_large_all", type=str)
+parser.add_argument('--model_path', default="kalpeshk2011/rankgen-t5-base-all", type=str)
+
 parser.add_argument('--cache_dir', default=None, type=str)
 args = parser.parse_args()
 
+test_example_file_map = {
+    "kalpeshk2011/rankgen-t5-base-all": "rankgen_data/test_examples/t5_base_all.jsonl",
+    "kalpeshk2011/rankgen-t5-large-all": "rankgen_data/test_examples/t5_large_all.jsonl",
+    "kalpeshk2011/rankgen-t5-xl-all": "rankgen_data/test_examples/t5_xl_all.jsonl",
+    "kalpeshk2011/rankgen-t5-xl-pg19": "rankgen_data/test_examples/t5_xl_pg19.jsonl"
+}
 
-t5x_embedder = T5XEmbeddingGenerator(model_path=args.model_path, cache_dir=None)
+rankgen_model = T5XEmbeddingGenerator(args.model_path)
 
-parameters = sum(p.numel() for p in t5x_embedder.model.parameters()) + t5x_embedder.projection.numel()
+parameters = sum(p.numel() for p in rankgen_model.model.parameters())
 
-f = open(os.path.join(args.model_path, "examples.jsonl"), "r")
+f = open(test_example_file_map[args.model_path], "r")
 examples = [json.loads(x) for x in f.read().strip().split("\n")]
 
 mean_prefix_diff = []
 mean_suffix_diff = []
 
 start = time.time()
-all_prefix_outs = t5x_embedder.encode([x["inputs"]["inputs_pretokenized"] for x in examples],  vectors_type="prefix", verbose=True, return_input_ids=True)
-all_suffix_outs = t5x_embedder.encode([x["inputs"]["targets_pretokenized"] for x in examples],  vectors_type="suffix", verbose=True, return_input_ids=True)
-time_taken = time.time() - start
+with torch.inference_mode():
+    all_prefix_outs = rankgen_model.encode([x["inputs"]["inputs_pretokenized"] for x in examples], vectors_type="prefix", verbose=True, return_input_ids=True)
+    all_suffix_outs = rankgen_model.encode([x["inputs"]["targets_pretokenized"] for x in examples], vectors_type="suffix", verbose=True, return_input_ids=True)
+    time_taken = time.time() - start
 
 print(f"Time taken = {time_taken / len(examples)}")
 
