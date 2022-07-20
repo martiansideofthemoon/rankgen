@@ -37,6 +37,7 @@ source rankgen-venv/bin/activate
 pip install torch torchvision # currently, this is the version compatible with CUDA 10.1
 pip install transformers
 pip install sentencepiece
+pip install --editable .
 pip install gdown # optional dependency
 ```
 
@@ -63,7 +64,7 @@ python scripts/test_rankgen_encoder.py --model_path kalpeshk2011/rankgen-t5-base
 Loading RankGen is simple using the HuggingFace APIs, but we suggest using [`RankGenEncoder`](scripts/rankgen_encoder.py), which is a small wrapper around the HuggingFace APIs for correctly preprocessing data and doing tokenization automatically. Please see [`scripts/test_rankgen_encoder.py`](scripts/test_rankgen_encoder.py) for an example of the usage or see below.
 
 ```
-from rankgen_encoder import RankGenEncoder
+from rankgen.rankgen_encoder import RankGenEncoder
 rankgen_model = RankGenEncoder("kalpeshk2011/rankgen-t5-xl-all")
 
 prefix_vectors = rankgen_model.encode(["This is a prefix sentence."], vectors_type="prefix")
@@ -75,7 +76,7 @@ suffix_vectors = rankgen_model.encode(["This is a suffix sentence."], vectors_ty
 The main file is [`scripts/rankgen_beam_search.py`](scripts/rankgen_beam_search.py). To execute it,
 
 ```
-python scripts/rankgen_beam_search.py \
+python rankgen/rankgen_beam_search.py \
     --dataset rankgen_data/wiki.jsonl \
     --retriever_model_path kalpeshk2011/rankgen-t5-xl-all \
     --num_tokens 20 --num_samples 10 --beam_size 2 \
@@ -85,7 +86,7 @@ python scripts/rankgen_beam_search.py \
 Evaluating using MAUVE (make sure JSONL file has several thousand generations for intuitive MAUVE scores, 7713 in our experiments),
 
 ```
-python scripts/score_multi_beam.py --dataset outputs_beam/wiki_t5_xl_beam_2_tokens_10_samples_10.jsonl
+python rankgen/score_multi_beam.py --dataset outputs_beam/wiki_t5_xl_beam_2_tokens_10_samples_10.jsonl
 ```
 
 
@@ -94,7 +95,7 @@ python scripts/score_multi_beam.py --dataset outputs_beam/wiki_t5_xl_beam_2_toke
 We conducted our human evaluation on Upwork, hiring English teachers and writers. We performed blind A/B testing between RankGen and nucleus sampling. We also asked our annotators to provide a 1-3 sentence explanation. You can find all the 600 annotations across two files in [`human-eval-data`](human-eval-data). To compute the evaluation scores run,
 
 ```
-python scripts/score_ab_text.py
+python rankgen/score_ab_text.py
 ```
 
 ### Citation Information
