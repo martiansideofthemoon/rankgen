@@ -64,21 +64,42 @@ python rankgen/test_rankgen_encoder.py --model_path kalpeshk2011/rankgen-t5-base
 Loading RankGen is simple using the HuggingFace APIs, but we suggest using [`RankGenEncoder`](rankgen/rankgen_encoder.py), which is a small wrapper around the HuggingFace APIs for correctly preprocessing data and doing tokenization automatically. Please see [`rankgen/test_rankgen_encoder.py`](rankgen/test_rankgen_encoder.py) for an example of the usage or see below.
 
 ```
-from rankgen.rankgen_encoder import RankGenEncoder
-rankgen_model = RankGenEncoder("kalpeshk2011/rankgen-t5-xl-all")
+from rankgen import RankGenEncoder, RankGenGenerator
 
-prefix_vectors = rankgen_model.encode(["This is a prefix sentence."], vectors_type="prefix")
-suffix_vectors = rankgen_model.encode(["This is a suffix sentence."], vectors_type="suffix")
+rankgen_encoder = RankGenEncoder("kalpeshk2011/rankgen-t5-xl-all")
 ```
 
-### Running beam search with RankGen
+**Encoding text to prefix/suffix vectors**
+
+```
+prefix_vectors = rankgen_encoder.encode(["This is a prefix sentence."], vectors_type="prefix")
+suffix_vectors = rankgen_encoder.encode(["This is a suffix sentence."], vectors_type="suffix")
+```
+
+## Generating text
+
+```
+# use a HuggingFace compatible language model
+generator = RankGenGenerator(rankgen_encoder=rankgen_encoder, language_model="gpt2-medium")
+
+inputs = ["Whatever might be the nature of the tragedy it would be over with long before this, and those moving black spots away yonder to the west, that he had discerned from the bluff, were undoubtedly the departing raiders. There was nothing left for Keith to do except determine the fate of the unfortunates, and give their bodies decent burial. That any had escaped, or yet lived, was altogether unlikely, unless, perchance, women had been in the party, in which case they would have been borne away prisoners."]
+
+# Baseline nucleus sampling
+print(generator.generate_single(inputs, top_p=0.9)[0][0])
+# Over-generate and re-rank
+print(generator.overgenerate_rerank(inputs, top_p=0.9, num_samples=10)[0][0])
+# Beam search
+print(generator.beam_search(inputs, top_p=0.9, num_samples=10, beam_size=2)[0][0])
+```
+
+### Running beam search with RankGen (reproducing experiments in the paper)
 
 The main file is [`rankgen/rankgen_beam_search.py`](rankgen/rankgen_beam_search.py). To execute it,
 
 ```
 python rankgen/rankgen_beam_search.py \
     --dataset rankgen_data/wiki.jsonl \
-    --retriever_model_path kalpeshk2011/rankgen-t5-xl-all \
+    --rankgen_encoder kalpeshk2011/rankgen-t5-xl-all \
     --num_tokens 20 --num_samples 10 --beam_size 2 \
     --output_file outputs_beam/wiki_t5_xl_beam_2_tokens_20_samples_10.jsonl
 ```
