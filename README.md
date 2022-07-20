@@ -76,7 +76,7 @@ prefix_vectors = rankgen_encoder.encode(["This is a prefix sentence."], vectors_
 suffix_vectors = rankgen_encoder.encode(["This is a suffix sentence."], vectors_type="suffix")
 ```
 
-## Generating text
+**Generating text**
 
 ```
 # use a HuggingFace compatible language model
