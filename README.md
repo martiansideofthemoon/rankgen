@@ -52,7 +52,7 @@ gdown --folder https://drive.google.com/drive/folders/1DRG2ess7fK3apfB-6KoHb_azM
 Run the test script to make sure the RankGen checkpoint has loaded correctly,
 
 ```
-python scripts/test_rankgen_encoder.py --model_path kalpeshk2011/rankgen-t5-base-all
+python rankgen/test_rankgen_encoder.py --model_path kalpeshk2011/rankgen-t5-base-all
 
 ### Expected output
 0.0009239262409127233
@@ -61,7 +61,7 @@ python scripts/test_rankgen_encoder.py --model_path kalpeshk2011/rankgen-t5-base
 
 ### Using RankGen
 
-Loading RankGen is simple using the HuggingFace APIs, but we suggest using [`RankGenEncoder`](scripts/rankgen_encoder.py), which is a small wrapper around the HuggingFace APIs for correctly preprocessing data and doing tokenization automatically. Please see [`scripts/test_rankgen_encoder.py`](scripts/test_rankgen_encoder.py) for an example of the usage or see below.
+Loading RankGen is simple using the HuggingFace APIs, but we suggest using [`RankGenEncoder`](rankgen/rankgen_encoder.py), which is a small wrapper around the HuggingFace APIs for correctly preprocessing data and doing tokenization automatically. Please see [`rankgen/test_rankgen_encoder.py`](rankgen/test_rankgen_encoder.py) for an example of the usage or see below.
 
 ```
 from rankgen.rankgen_encoder import RankGenEncoder
@@ -73,7 +73,7 @@ suffix_vectors = rankgen_model.encode(["This is a suffix sentence."], vectors_ty
 
 ### Running beam search with RankGen
 
-The main file is [`scripts/rankgen_beam_search.py`](scripts/rankgen_beam_search.py). To execute it,
+The main file is [`rankgen/rankgen_beam_search.py`](rankgen/rankgen_beam_search.py). To execute it,
 
 ```
 python rankgen/rankgen_beam_search.py \
