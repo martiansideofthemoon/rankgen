@@ -1,6 +1,6 @@
 ## RankGen - Improving Text Generation with Large Ranking Models
 
-This is the official repository for our preprint, [RankGen - Improving Text Generation with Large Ranking Models](https://arxiv.org/abs/2205.09726). RankGen is a 1.2 billion encoder model which maps prefixes and generations from any pretrained English language model to a shared vector space. RankGen can be used to rerank multiple full-length samples from an LM, and it can also be incorporated as a scoring function into beam search to significantly improve generation quality (0.85 vs 0.77 [MAUVE](https://arxiv.org/abs/2102.01454), 75% preference according to humans annotators who are English writers).
+This is the official repository for our preprint, [RankGen - Improving Text Generation with Large Ranking Models](https://arxiv.org/abs/2205.09726). RankGen is a 1.2 billion encoder model which maps prefixes and generations from any pretrained English language model to a shared vector space. RankGen can be used to rerank multiple full-length samples from an LM, and it can also be incorporated as a scoring function into beam search to significantly improve generation quality (0.85 vs 0.77 [MAUVE](https://arxiv.org/abs/2102.01454), 75% preference according to humans annotators who are English writers). RankGen can also be used like a dense retriever, and achieves state-of-the-art performance on [literary retrieval](https://relic.cs.umass.edu/leaderboard.html).
 
 This repository contains human evaluation data, links to HuggingFace-compatible model checkpoints, and code to integrate RankGen in beam search on HuggingFace models. RankGen is trained by fine-tuning the T5-XL encoder using the [T5X library](https://github.com/google-research/t5x).
 
@@ -14,7 +14,7 @@ All RankGen checkpoints are available on the HuggingFace Model Hub - [link](http
 
 We recommend using `RankGen-XL-all`.
 
-| Checkpoint        | Size | Model Name                        | HF Hub Link                                                      |
+| Checkpoint        | Size | Hub Model Name                    | HF Hub Link                                                      |
 |-------------------|------|-----------------------------------|------------------------------------------------------------------|
 | RankGen-base-all  | 0.1B | kalpeshk2011/rankgen-t5-base-all  | [link](https://huggingface.co/kalpeshk2011/rankgen-t5-base-all)  |
 | RankGen-large-all | 0.3B | kalpeshk2011/rankgen-t5-large-all | [link](https://huggingface.co/kalpeshk2011/rankgen-t5-large-all) |
