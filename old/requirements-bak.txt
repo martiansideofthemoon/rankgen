@@ -5,7 +5,7 @@ gdown==4.5.1
 huggingface-hub==0.8.1
 idna==3.3
 importlib-metadata==4.12.0
-numpy==1.21.6
+numpy==1.22
 packaging==21.3
 Pillow==9.2.0
 pyparsing==3.0.9
