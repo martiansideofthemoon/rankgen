@@ -43,7 +43,7 @@ Python 3.7+, `torch` (CUDA recommended), `transformers`
 (from PyPI)
 
 ```
-virtualenv rankgen-venv
+python3.7 -m virtualenv rankgen-venv
 source rankgen-venv/bin/activate
 pip install rankgen
 ```
@@ -51,13 +51,14 @@ pip install rankgen
 (from source)
 
 ```
-virtualenv rankgen-venv
+python3.7 -m virtualenv rankgen-venv
 source rankgen-venv/bin/activate
 git clone https://github.com/martiansideofthemoon/rankgen
+cd rankgen
 pip install --editable .
 ```
 
-**Data Download**
+**Data Download / Test**
 
 Get the data [here](https://drive.google.com/drive/folders/1DRG2ess7fK3apfB-6KoHb_azMuHbsIv4?usp=sharing) and place folder in root directory. Alternatively, use `gdown` as shown below,
 
@@ -68,7 +69,7 @@ gdown --folder https://drive.google.com/drive/folders/1DRG2ess7fK3apfB-6KoHb_azM
 Run the test script to make sure the RankGen checkpoint has loaded correctly,
 
 ```
-python rankgen/test_rankgen_encoder.py --model_path kalpeshk2011/rankgen-t5-base-all
+python -m rankgen.test_rankgen_encoder --model_path kalpeshk2011/rankgen-t5-base-all
 
 ### Expected output
 0.0009239262409127233
