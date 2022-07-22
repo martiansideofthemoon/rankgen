@@ -1,11 +1,16 @@
 ## RankGen - Improving Text Generation with Large Ranking Models
 
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-red.svg)](#python)
+[![arxiv](https://img.shields.io/badge/arXiv-2205.09726-b31b1b.svg)](https://arxiv.org/abs/2205.09726)
+[![PyPI version rankgen](https://badge.fury.io/py/rankgen.svg)](https://pypi.python.org/pypi/rankgen/) [![License: Apache 2.0](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 This is the official repository for our preprint, [RankGen - Improving Text Generation with Large Ranking Models](https://arxiv.org/abs/2205.09726). RankGen is a 1.2 billion encoder model which maps prefixes and generations from any pretrained English language model to a shared vector space. RankGen can be used to rerank multiple full-length samples from an LM, and it can also be incorporated as a scoring function into beam search to significantly improve generation quality (0.85 vs 0.77 [MAUVE](https://arxiv.org/abs/2102.01454), 75% preference according to humans annotators who are English writers). RankGen can also be used like a dense retriever, and achieves state-of-the-art performance on [literary retrieval](https://relic.cs.umass.edu/leaderboard.html).
 
 This repository contains human evaluation data, links to HuggingFace-compatible model checkpoints, and code to integrate RankGen in beam search on HuggingFace models. RankGen is trained by fine-tuning the T5-XL encoder using the [T5X library](https://github.com/google-research/t5x).
 
 ### Updates
 
+* (July 2022) RankGen is now a [PyPI package](https://pypi.org/project/rankgen), just run `pip install rankgen` to use it!
 * (July 2022) RankGen checkpoints are now available on the HuggingFace Model Hub ([link](https://huggingface.co/kalpeshk2011))!
 
 ### Model checkpoints
@@ -29,16 +34,27 @@ T5X JAX checkpoints (base, large, XL) - [here](https://github.com/google-researc
 
 ### Setup
 
+**Requirements**
+
+Python 3.7+, `torch` (CUDA recommended), `transformers`
+
 **Installation**
+
+(from PyPI)
 
 ```
 virtualenv rankgen-venv
 source rankgen-venv/bin/activate
-pip install torch torchvision # currently, this is the version compatible with CUDA 10.1
-pip install transformers
-pip install sentencepiece
+pip install rankgen
+```
+
+(from source)
+
+```
+virtualenv rankgen-venv
+source rankgen-venv/bin/activate
+git clone https://github.com/martiansideofthemoon/rankgen
 pip install --editable .
-pip install gdown # optional dependency
 ```
 
 **Data Download**
