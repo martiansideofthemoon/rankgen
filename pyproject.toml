@@ -1,9 +1,11 @@
 [tool.poetry]
 name = "rankgen"
-version = "0.1.0"
+version = "0.1.1"
 description = "RankGen is a suite of encoder models (100M-1.2B parameters) which map prefixes and generations from any pretrained English language model to a shared vector space. RankGen can be used to rerank multiple full-length samples from an LM, and it can also be incorporated as a scoring function into beam search to significantly improve generation quality (0.85 vs 0.77 MAUVE, 75% preference according to humans annotators who are English writers)."
 authors = ["Kalpesh Krishna, Yapei Chang, John Wieting, Mohit Iyyer"]
 license = "Apache License 2.0"
+repository = 'https://github.com/martiansideofthemoon/rankgen'
+readme = 'README.md'
 
 [tool.poetry.dependencies]
 python = "^3.7"
