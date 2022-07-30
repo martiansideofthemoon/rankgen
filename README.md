@@ -3,6 +3,7 @@
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-red.svg)](#python)
 [![arxiv](https://img.shields.io/badge/arXiv-2205.09726-b31b1b.svg)](https://arxiv.org/abs/2205.09726)
 [![PyPI version rankgen](https://badge.fury.io/py/rankgen.svg)](https://pypi.python.org/pypi/rankgen/) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Downloads](https://pepy.tech/badge/rankgen)](https://pepy.tech/project/rankgen)
 
 This is the official repository for our preprint, [RankGen - Improving Text Generation with Large Ranking Models](https://arxiv.org/abs/2205.09726). RankGen is a 1.2 billion encoder model which maps prefixes and generations from any pretrained English language model to a shared vector space. RankGen can be used to rerank multiple full-length samples from an LM, and it can also be incorporated as a scoring function into beam search to significantly improve generation quality (0.85 vs 0.77 [MAUVE](https://arxiv.org/abs/2102.01454), 75% preference according to humans annotators who are English writers). RankGen can also be used like a dense retriever, and achieves state-of-the-art performance on [literary retrieval](https://relic.cs.umass.edu/leaderboard.html).
 
