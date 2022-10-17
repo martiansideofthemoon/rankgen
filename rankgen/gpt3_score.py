@@ -48,7 +48,7 @@ def evaluate_response(response, max_tokens):
     }
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_hard.jsonl")
+parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jsonl")
 args = parser.parse_args()
 
 with open(args.dataset, "r") as f:
@@ -73,22 +73,22 @@ for dd in data[:100]:
         dd['gold_gpt3'] = gold['choices'][0]['logprobs']
         dd['negs_gpt3'] = [nn['choices'][0]['logprobs'] for nn in negs]
 
-    # prefix_len = 0
-    # prefix_so_far = ""
-    # for token in dd['gold_gpt3']['tokens']:
-    #     prefix_so_far += token
-    #     prefix_len += 1
-    #     if prefix_so_far == dd['prefix']:
-    #         break
-    # if prefix_len > len(dd['gold_gpt3']['tokens']) - 10:
-    #     continue
-    # print(f"Suffix length = {len(dd['gold_gpt3']['tokens']) - prefix_len}")
+    prefix_len = 0
+    prefix_so_far = ""
+    for token in dd['gold_gpt3']['tokens']:
+        prefix_so_far += token
+        prefix_len += 1
+        if prefix_so_far == dd['prefix']:
+            break
+    if prefix_len > len(dd['gold_gpt3']['tokens']) - 10:
+        continue
+    suffix_len = len(dd['gold_gpt3']['tokens']) - prefix_len
 
-    # gold_ppl = perplexity(dd['gold_gpt3']['token_logprobs'][prefix_len:])
-    # neg_ppls = [perplexity(nn['token_logprobs'][prefix_len:]) for nn in dd['negs_gpt3']]
+    gold_ppl = perplexity(dd['gold_gpt3']['token_logprobs'][prefix_len:])
+    neg_ppls = [perplexity(nn['token_logprobs'][prefix_len:]) for nn in dd['negs_gpt3']]
 
-    gold_ppl = perplexity(dd['gold_gpt3']['token_logprobs'][1:])
-    neg_ppls = [perplexity(nn['token_logprobs'][1:]) for nn in dd['negs_gpt3']]
+    # gold_ppl = perplexity(dd['gold_gpt3']['token_logprobs'][-1 * suffix_len:])
+    # neg_ppls = [perplexity(nn['token_logprobs'][-1 * suffix_len:]) for nn in dd['negs_gpt3']]
     print(gold_ppl)
     print(neg_ppls)
 

@@ -110,7 +110,9 @@ print(generator.overgenerate_rerank(inputs, top_p=0.9, num_samples=10)[0][0])
 print(generator.beam_search(inputs, top_p=0.9, num_samples=10, beam_size=2)[0][0])
 ```
 
-### Running beam search with RankGen (reproducing experiments in the paper)
+### Reproducing experiments in the paper
+
+**Running beam search with RankGen**
 
 The main file is [`rankgen/rankgen_beam_search.py`](rankgen/rankgen_beam_search.py). To execute it,
 
@@ -128,6 +130,20 @@ Evaluating using MAUVE (make sure JSONL file has several thousand generations fo
 python rankgen/score_multi_beam.py --dataset outputs_beam/wiki_t5_xl_beam_2_tokens_10_samples_10.jsonl
 ```
 
+**Suffix Identification with GPT2**
+
+The main file is [`rankgen/rankgen_beam_search.py`](rankgen/.py). To execute it,
+
+```
+mkdir gold-beats-neg-outputs
+python rankgen/gpt2_score.py \
+  --dataset rankgen_data/hellaswag_val.tsv \
+  --model_size xl \
+  --metric avg_conditional \
+  --num_negatives 3
+```
+
+The corresponding data files can be found in the same Google Drive [folder](https://drive.google.com/drive/folders/1DRG2ess7fK3apfB-6KoHb_azMuHbsIv4?usp=sharing).
 
 ### Human evaluation data
 
