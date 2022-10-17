@@ -1,11 +1,9 @@
+"""Use pre-loaded retriever scores to rank suffixes."""
+
 import argparse
 import json
-from utils import f1_score
-import nltk
 import tqdm
 import numpy as np
-from nltk import tokenize
-from nltk.corpus import stopwords
 
 
 parser = argparse.ArgumentParser()

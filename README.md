@@ -35,7 +35,7 @@ T5X JAX checkpoints (base, large, XL) - [here](https://github.com/google-researc
 
 ### Setup
 
-**Requirements**
+**Requirements** (`pip` will install these dependencies for you)
 
 Python 3.7+, `torch` (CUDA recommended), `transformers`
 
