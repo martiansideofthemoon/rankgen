@@ -156,10 +156,10 @@ python rankgen/score_ab_text.py
 ### Citation Information
 If you use RankGen, please cite it as follows:
 ```
-@article{krishna2022rankgen,
-  title={RankGen: Improving Text Generation with Large Ranking Models},
-  author={Kalpesh Krishna and Yapei Chang and John Wieting and Mohit Iyyer},
-  journal={arXiv preprint arXiv:2205.09726},
-  year={2022}
+@inproceedings{rankgen22,
+author={Kalpesh Krishna and Yapei Chang and John Wieting and Mohit Iyyer},
+booktitle = {Empirical Methods in Natural Language Processing},
+Year = "2022",
+Title={RankGen: Improving Text Generation with Large Ranking Models},
 }
 ```
