@@ -9,19 +9,18 @@ import os
 import random
 import nltk
 
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, StoppingCriteriaList, MaxLengthCriteria
 from utils import execute_gpt2, cudafy_tokens, form_partitions, truncate
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jsonl")
-parser.add_argument('--output_file', default="data/wiki_gpt2_medium_p90_multi.tsv")
+parser.add_argument('--output_file', default="data_new/contrastive_search/wiki_gpt2_medium_k_5_alpha_0.6.tsv")
 parser.add_argument('--model_size', default="medium")
 parser.add_argument('--num_instances', default=7713, type=int)
 parser.add_argument('--num_samples', default=1, type=int)
 parser.add_argument('--max_new_tokens', default=115, type=int)
-parser.add_argument('--top_k', default=None, type=int)
-parser.add_argument('--top_p', default=None, type=float)
-parser.add_argument('--typical_p', default=None, type=float)
+parser.add_argument('--top_k', default=5, type=int)
+parser.add_argument('--penalty_alpha', default=0.6, type=float)
 parser.add_argument('--truncate_fraction', default=0.0, type=float)
 parser.add_argument('--num_shards', default=1, type=int)
 parser.add_argument('--local_rank', default=0, type=int)
@@ -40,7 +39,6 @@ avg_score = []
 all_score = []
 random.seed(43)
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 output = ""
 suffix_lens = []
@@ -75,16 +73,16 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
     num_tokens = len(batch['input_ids'][0])
     if num_tokens >= 1024 - args.max_new_tokens - 3:
         print("long sequence detected")
-    with torch.no_grad():
-        generation = model.generate(**batch,
-            do_sample=True,
-            output_scores=True,
-            return_dict_in_generate=True,
-            max_new_tokens=args.max_new_tokens,
-            top_k=args.top_k,
-            typical_p=args.typical_p,
-            top_p=args.top_p,
-            num_return_sequences=args.num_samples)
+    stopping_criteria = StoppingCriteriaList([MaxLengthCriteria(max_length=num_tokens + args.max_new_tokens)])
+    with torch.inference_mode():
+        generation = model.contrastive_search(**batch,
+                                              penalty_alpha=args.penalty_alpha,
+                                              top_k=args.top_k,
+                                              output_scores=True,
+                                              return_dict_in_generate=True,
+                                              stopping_criteria=stopping_criteria,
+                                              eos_token_id=tokenizer.eos_token_id,
+                                              pad_token_id=tokenizer.pad_token_id)
         gen_text = postprocess(generation['sequences'][:, num_tokens:])
         gen_text = [" ".join(x.split()) for x in gen_text]
         gen_text = [truncate(x) for x in gen_text]
