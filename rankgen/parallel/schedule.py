@@ -28,7 +28,7 @@ parser.add_argument('--command', default="python scripts/gpt2_generate.py --mode
 parser.add_argument('--num_shards', default=20, type=int)
 parser.add_argument('--start_shard', default=None, type=int)
 parser.add_argument('--end_shard', default=None, type=int)
-parser.add_argument('--partition_type', default="2080ti-short", type=str)
+parser.add_argument('--partition_type', default="gypsum-2080ti", type=str)
 args = parser.parse_args()
 
 script_command = args.command
