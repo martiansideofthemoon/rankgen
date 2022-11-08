@@ -1,20 +1,17 @@
 import argparse
-import glob
-from lib2to3.pgen2 import token
 import numpy as np
 import tqdm
 import json
 import torch
 import os
 import random
-import nltk
 
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, StoppingCriteriaList, MaxLengthCriteria
-from utils import execute_gpt2, cudafy_tokens, form_partitions, truncate
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from utils import form_partitions, truncate
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jsonl")
-parser.add_argument('--output_file', default="data_new/contrastive_search/wiki_gpt2_medium_k_5_alpha_0.6.tsv")
+parser.add_argument('--output_file', default="data_new/contrastive_decoding/wiki_gpt2_medium_ignore_prefix.tsv")
 parser.add_argument('--model_size', default="medium")
 parser.add_argument('--num_instances', default=7713, type=int)
 parser.add_argument('--num_samples', default=1, type=int)
@@ -116,6 +113,7 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
             min_prob=0.0,
             do_sample=False,
             num_beams=5,
+            max_length=num_tokens + args.max_new_tokens,
             num_return_sequences=1,
             student_lm=student_lm,
             teacher_student=True,
@@ -127,7 +125,7 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
             use_cap_student=False, #cap student debug
             use_switch=False
         )
-        gen_text = postprocess(generation['sequences'][:, num_tokens:])
+        gen_text = postprocess(generation[:, num_tokens:])
         gen_text = [" ".join(x.split()) for x in gen_text]
         gen_text = [truncate(x) for x in gen_text]
 
