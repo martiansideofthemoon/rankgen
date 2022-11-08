@@ -72,3 +72,10 @@ t5x_conversion
 outputs_beam
 outputs_beam_xl
 data_new
+
+transformers
+rankgen/parallel/parallel_logs
+rankgen/parallel/parallel_schedulers
+gold-beats-neg-outputs
+rankgen_data
+ContrastiveDecoding

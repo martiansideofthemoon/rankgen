@@ -1,25 +1,26 @@
 import argparse
 import glob
+from lib2to3.pgen2 import token
 import numpy as np
 import tqdm
 import json
 import torch
 import os
 import random
+import nltk
 
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, StoppingCriteriaList, MaxLengthCriteria
 from utils import execute_gpt2, cudafy_tokens, form_partitions, truncate
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default="data/t5_xl_all_domains_wiki_random.jsonl")
-parser.add_argument('--output_file', default="data/wiki_gpt2_medium_p90_multi.tsv")
+parser.add_argument('--output_file', default="data_new/contrastive_search/wiki_gpt2_medium_k_5_alpha_0.6.tsv")
 parser.add_argument('--model_size', default="medium")
 parser.add_argument('--num_instances', default=7713, type=int)
 parser.add_argument('--num_samples', default=1, type=int)
 parser.add_argument('--max_new_tokens', default=115, type=int)
-parser.add_argument('--top_k', default=None, type=int)
-parser.add_argument('--top_p', default=None, type=float)
-parser.add_argument('--typical_p', default=None, type=float)
+parser.add_argument('--top_k', default=5, type=int)
+parser.add_argument('--penalty_alpha', default=0.6, type=float)
 parser.add_argument('--truncate_fraction', default=0.0, type=float)
 parser.add_argument('--num_shards', default=1, type=int)
 parser.add_argument('--local_rank', default=0, type=int)
@@ -28,17 +29,49 @@ args = parser.parse_args()
 with open(args.dataset, "r") as f:
     data = [json.loads(x) for x in f.read().strip().split("\n")]
 
+def ignore_prefix_prepare_inputs_for_generation(input_ids, past=None, **kwargs):
+            
+    token_type_ids = kwargs.get("token_type_ids", None)
+    # only last token for inputs_ids if past is defined in kwargs
+    input_ids = input_ids[:, -1].unsqueeze(-1)
+    if token_type_ids is not None:
+        token_type_ids = token_type_ids[:, -1].unsqueeze(-1)
+
+    attention_mask = kwargs.get("attention_mask", None)
+    position_ids = kwargs.get("position_ids", None)
+
+    if attention_mask is not None and position_ids is None:
+        # create position_ids on the fly for batch generation
+        position_ids = attention_mask.long().cumsum(-1) - 1
+        position_ids.masked_fill_(attention_mask == 0, 1)
+        position_ids = position_ids[:, -1].unsqueeze(-1)
+    else:
+        position_ids = None
+
+    return {
+        "input_ids": input_ids,
+        "past_key_values": past,
+        "use_cache": kwargs.get("use_cache"),
+        "position_ids": position_ids,
+        "attention_mask": attention_mask,
+        "token_type_ids": token_type_ids,
+    }
+
+
+student_lm = GPT2LMHeadModel.from_pretrained(f"gpt2")
 tokenizer = GPT2Tokenizer.from_pretrained(f"gpt2-{args.model_size}")
 tokenizer.pad_token = tokenizer.eos_token
 model = GPT2LMHeadModel.from_pretrained(f"gpt2-{args.model_size}")
 model.cuda()
 model.eval()
+student_lm.cuda()
+
+student_lm.prepare_inputs_for_generation = ignore_prefix_prepare_inputs_for_generation
 
 avg_score = []
 all_score = []
 random.seed(43)
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 output = ""
 suffix_lens = []
@@ -73,16 +106,27 @@ for idx, dd in tqdm.tqdm(enumerate(data), total=min(len(data), args.num_instance
     num_tokens = len(batch['input_ids'][0])
     if num_tokens >= 1024 - args.max_new_tokens - 3:
         print("long sequence detected")
-    with torch.no_grad():
-        generation = model.generate(**batch,
-            do_sample=True,
-            output_scores=True,
-            return_dict_in_generate=True,
-            max_new_tokens=args.max_new_tokens,
-            top_k=args.top_k,
-            typical_p=args.typical_p,
-            top_p=args.top_p,
-            num_return_sequences=args.num_samples)
+
+    with torch.inference_mode():
+        generation = model.generate(
+            **batch,
+            temperature=1.0,
+            top_k=0,
+            top_p=1.0,
+            min_prob=0.0,
+            do_sample=False,
+            num_beams=5,
+            num_return_sequences=1,
+            student_lm=student_lm,
+            teacher_student=True,
+            model_kwargs_student={}, 
+            st_coef=1.0,
+            tokenizer=tokenizer, # analysis
+            student_min_prob=0.0,
+            student_temperature=0.5,
+            use_cap_student=False, #cap student debug
+            use_switch=False
+        )
         gen_text = postprocess(generation['sequences'][:, num_tokens:])
         gen_text = [" ".join(x.split()) for x in gen_text]
         gen_text = [truncate(x) for x in gen_text]
