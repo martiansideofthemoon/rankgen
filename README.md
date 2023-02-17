@@ -11,6 +11,7 @@ This repository contains human evaluation data, links to HuggingFace-compatible 
 
 ### Updates
 
+* (Nov 2022) We have updated our [arXiv version](https://arxiv.org/abs/2205.09726) to show that RankGen beats newer decoding strategies like contrastive search, contrastive decoding and eta sampling!
 * (July 2022) RankGen is now a [PyPI package](https://pypi.org/project/rankgen), just run `pip install rankgen` to use it!
 * (July 2022) RankGen checkpoints are now available on the HuggingFace Model Hub ([link](https://huggingface.co/kalpeshk2011))!
 
